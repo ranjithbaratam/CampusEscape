@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>C Programming Challenge</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="game-card">
+
+        <div class="level-title">
+            LEVEL 2
+        </div>
+
+        <h1>💻 C Programming</h1>
+
+        <p id="playerDisplay"></p>
+
+        <div class="game-info">
+
+            <span id="lives">
+                ❤️ ❤️ ❤️
+            </span>
+
+            <span>
+                🏆 Score:
+                <b id="score">0</b>
+            </span>
+
+            <span>
+                ⏱️
+                <b id="timer">30</b>s
+            </span>
+
+        </div>
+
+        <div class="progress">
+
+            <div id="progressBar"></div>
+
+        </div>
+
+        <h2 id="questionNumber">
+            Question 1 / 5
+        </h2>
+
+        <div class="question-box">
+
+            <p id="question"></p>
+
+            <pre id="code"></pre>
+
+        </div>
+
+        <div class="options">
+
+            <button onclick="checkAnswer(0)"
+                    id="option0">
+            </button>
+
+            <button onclick="checkAnswer(1)"
+                    id="option1">
+            </button>
+
+            <button onclick="checkAnswer(2)"
+                    id="option2">
+            </button>
+
+            <button onclick="checkAnswer(3)"
+                    id="option3">
+            </button>
+
+        </div>
+
+        <button class="hint-button"
+                onclick="showHint()">
+
+            💡 AI HINT
+
+        </button>
+
+        <p id="hint"></p>
+
+        <p id="message"></p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let score = 0;
+
+let correctAnswers = 0;
+
+let lives = 3;
+
+let currentQuestion = 0;
+
+let timeLeft = 30;
+
+let timer;
+
+let answered = false;
+
+
+const playerName =
+    localStorage.getItem("playerName") || "Player";
+
+document.getElementById("playerDisplay").innerText =
+    "👤 Player: " + playerName;
+
+
+const questions = [
+
+    {
+        question:
+            "Which function is used to display output in C?",
+
+        code: "",
+
+        options: [
+            "scanf()",
+            "printf()",
+            "input()",
+            "print()"
+        ],
+
+        answer: 1,
+
+        hint:
+            "🤖 AI Hint: Think about the function used to print text."
+    },
+
+
+    {
+        question:
+            "Which symbol is used to end a statement in C?",
+
+        code: "",
+
+        options: [
+            ".",
+            ":",
+            ";",
+            ","
+        ],
+
+        answer: 2,
+
+        hint:
+            "🤖 AI Hint: Most C statements end with this symbol."
+    },
+
+
+    {
+        question:
+            "What is the output?",
+
+        code:
+`int x = 10;
+printf("%d", x);`,
+
+        options: [
+            "10",
+            "0",
+            "x",
+            "Error"
+        ],
+
+        answer: 0,
+
+        hint:
+            "🤖 AI Hint: %d is used to print an integer."
+    },
+
+
+    {
+        question:
+            "Which data type is used to store an integer?",
+
+        code: "",
+
+        options: [
+            "float",
+            "char",
+            "int",
+            "double"
+        ],
+
+        answer: 2,
+
+        hint:
+            "🤖 AI Hint: The name of this data type is very short."
+    },
+
+
+    {
+        question:
+            "What is the output?",
+
+        code:
+`int x = 5;
+
+if (x > 3)
+    printf("Yes");
+else
+    printf("No");`,
+
+        options: [
+            "Yes",
+            "No",
+            "5",
+            "Error"
+        ],
+
+        answer: 0,
+
+        hint:
+            "🤖 AI Hint: Is 5 greater than 3?"
+    }
+
+];
+
+
+function loadQuestion() {
+
+    answered = false;
+
+    const q =
+        questions[currentQuestion];
+
+
+    document.getElementById("questionNumber").innerText =
+        "Question " +
+        (currentQuestion + 1) +
+        " / " +
+        questions.length;
+
+
+    document.getElementById("question").innerText =
+        q.question;
+
+
+    document.getElementById("code").innerText =
+        q.code;
+
+
+    for (let i = 0; i < 4; i++) {
+
+        const button =
+            document.getElementById(
+                "option" + i
+            );
+
+        button.innerText =
+            String.fromCharCode(65 + i) +
+            ") " +
+            q.options[i];
+
+        button.disabled = false;
+
+    }
+
+
+    document.getElementById("hint").innerText = "";
+
+    document.getElementById("message").innerText = "";
+
+    updateLives();
+
+    updateProgress();
+
+    startTimer();
+
+}
+
+
+function checkAnswer(selected) {
+
+    if (answered) {
+        return;
+    }
+
+    const q =
+        questions[currentQuestion];
+
+
+    if (selected === q.answer) {
+
+        answered = true;
+
+        score += 10;
+
+        correctAnswers++;
+
+        document.getElementById("score").innerText =
+            score;
+
+        document.getElementById("message").innerText =
+            "✅ Correct! +10 points";
+
+        disableOptions();
+
+        clearInterval(timer);
+
+        setTimeout(
+            nextQuestion,
+            900
+        );
+
+    }
+
+    else {
+
+        lives--;
+
+        updateLives();
+
+        document.getElementById("message").innerText =
+            "❌ Wrong answer!";
+
+
+        if (lives <= 0) {
+
+            gameOver();
+
+        }
+
+    }
+
+}
+
+
+function disableOptions() {
+
+    for (let i = 0; i < 4; i++) {
+
+        document.getElementById(
+            "option" + i
+        ).disabled = true;
+
+    }
+
+}
+
+
+function nextQuestion() {
+
+    currentQuestion++;
+
+
+    if (
+        currentQuestion >=
+        questions.length
+    ) {
+
+        levelComplete();
+
+    }
+
+    else {
+
+        loadQuestion();
+
+    }
+
+}
+
+
+function updateLives() {
+
+    let hearts = "";
+
+    for (let i = 0; i < lives; i++) {
+
+        hearts += "❤️ ";
+
+    }
+
+    document.getElementById("lives").innerText =
+        hearts;
+
+}
+
+
+function updateProgress() {
+
+    const progress =
+        ((currentQuestion + 1) /
+        questions.length) * 100;
+
+    document.getElementById(
+        "progressBar"
+    ).style.width = progress + "%";
+
+}
+
+
+function showHint() {
+
+    document.getElementById("hint").innerText =
+        questions[currentQuestion].hint;
+
+}
+
+
+function startTimer() {
+
+    clearInterval(timer);
+
+    timeLeft = 30;
+
+    document.getElementById("timer").innerText =
+        timeLeft;
+
+
+    timer = setInterval(function() {
+
+        timeLeft--;
+
+        document.getElementById("timer").innerText =
+            timeLeft;
+
+
+        if (timeLeft <= 0) {
+
+            clearInterval(timer);
+
+            lives--;
+
+            updateLives();
+
+            document.getElementById("message").innerText =
+                "⏰ Time's up!";
+
+
+            if (lives <= 0) {
+
+                gameOver();
+
+            }
+
+            else {
+
+                setTimeout(
+                    nextQuestion,
+                    1000
+                );
+
+            }
+
+        }
+
+    }, 1000);
+
+}
+
+
+function gameOver() {
+
+    clearInterval(timer);
+
+    localStorage.setItem(
+        "cScore",
+        score
+    );
+
+    localStorage.setItem(
+        "cCorrect",
+        correctAnswers
+    );
+
+    alert(
+        "💀 Game Over!\nYour C Score: " +
+        score
+    );
+
+    window.location.href = "/";
+
+}
+
+
+function levelComplete() {
+
+    clearInterval(timer);
+
+    localStorage.setItem(
+        "cScore",
+        score
+    );
+
+    localStorage.setItem(
+        "cCorrect",
+        correctAnswers
+    );
+
+
+    document.getElementById("message").innerText =
+        "🎉 C Level Complete!";
+
+
+    setTimeout(function() {
+
+        window.location.href = "/logic";
+
+    }, 1200);
+
+}
+
+
+loadQuestion();
+
+</script>
+
+</body>
+
+</html>

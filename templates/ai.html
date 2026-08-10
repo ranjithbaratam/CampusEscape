@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>AI Challenge</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="game-card">
+
+        <div class="icon">
+            🤖
+        </div>
+
+        <div class="level-title">
+            FINAL LEVEL
+        </div>
+
+        <h1>AI Challenge</h1>
+
+        <p id="playerDisplay"></p>
+
+
+        <div class="question-box">
+
+            <h2>🤖 AI Mentor</h2>
+
+            <p>
+                I analyzed your performance
+                in Python, C and Logic.
+            </p>
+
+        </div>
+
+
+        <div class="score-grid">
+
+            <div>
+                🐍 Python
+                <strong id="pythonScore">
+                    0
+                </strong>
+            </div>
+
+            <div>
+                💻 C
+                <strong id="cScore">
+                    0
+                </strong>
+            </div>
+
+            <div>
+                🧠 Logic
+                <strong id="logicScore">
+                    0
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div class="ai-analysis">
+
+            <h2 id="difficulty">
+                🤖 Analyzing...
+            </h2>
+
+            <p id="aiMessage"></p>
+
+            <p>
+                💪 Strongest:
+                <strong id="strongest">
+                    -
+                </strong>
+            </p>
+
+            <p>
+                📚 Needs Practice:
+                <strong id="weakest">
+                    -
+                </strong>
+            </p>
+
+        </div>
+
+
+        <button onclick="startAIChallenge()">
+
+            🚀 START AI CHALLENGE
+
+        </button>
+
+
+        <div id="aiQuestion"
+             style="display:none;">
+
+            <div class="question-box">
+
+                <h2 id="question"></h2>
+
+            </div>
+
+
+            <div class="options">
+
+                <button onclick="answerAI(0)"
+                        id="aiOption0">
+                </button>
+
+                <button onclick="answerAI(1)"
+                        id="aiOption1">
+                </button>
+
+                <button onclick="answerAI(2)"
+                        id="aiOption2">
+                </button>
+
+                <button onclick="answerAI(3)"
+                        id="aiOption3">
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <button class="hint-button"
+                onclick="showAIHint()">
+
+            💡 AI HINT
+
+        </button>
+
+
+        <p id="hint"></p>
+
+        <p id="message"></p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const playerName =
+    localStorage.getItem("playerName") || "Player";
+
+
+document.getElementById("playerDisplay").innerText =
+    "👤 Player: " + playerName;
+
+
+// ==========================================
+// GET PERFORMANCE
+// ==========================================
+
+const pythonScore =
+    Number(
+        localStorage.getItem("pythonScore")
+    ) || 0;
+
+
+const cScore =
+    Number(
+        localStorage.getItem("cScore")
+    ) || 0;
+
+
+const logicScore =
+    Number(
+        localStorage.getItem("logicScore")
+    ) || 0;
+
+
+const pythonCorrect =
+    Number(
+        localStorage.getItem("pythonCorrect")
+    ) || 0;
+
+
+const cCorrect =
+    Number(
+        localStorage.getItem("cCorrect")
+    ) || 0;
+
+
+const logicCorrect =
+    Number(
+        localStorage.getItem("logicCorrect")
+    ) || 0;
+
+
+// ==========================================
+// DISPLAY SCORES
+// ==========================================
+
+document.getElementById("pythonScore").innerText =
+    pythonScore + "/50";
+
+
+document.getElementById("cScore").innerText =
+    cScore + "/50";
+
+
+document.getElementById("logicScore").innerText =
+    logicScore + "/50";
+
+
+// ==========================================
+// AI ANALYSIS
+// ==========================================
+
+const totalScore =
+    pythonScore +
+    cScore +
+    logicScore;
+
+
+const maxScore = 150;
+
+
+const percentage =
+    Math.round(
+        (totalScore / maxScore) * 100
+    );
+
+
+const scores = {
+
+    Python: pythonScore,
+
+    C: cScore,
+
+    Logic: logicScore
+
+};
+
+
+const subjects =
+    Object.keys(scores);
+
+
+const strongestSubject =
+    subjects.reduce(function(a, b) {
+
+        return scores[a] >= scores[b]
+            ? a
+            : b;
+
+    });
+
+
+const weakestSubject =
+    subjects.reduce(function(a, b) {
+
+        return scores[a] <= scores[b]
+            ? a
+            : b;
+
+    });
+
+
+document.getElementById("strongest").innerText =
+    strongestSubject;
+
+
+document.getElementById("weakest").innerText =
+    weakestSubject;
+
+
+let difficulty;
+
+let aiMessage;
+
+
+if (percentage >= 85) {
+
+    difficulty = "🔥 HARD";
+
+    aiMessage =
+        "Excellent performance! " +
+        "The AI selected a difficult challenge.";
+
+}
+
+else if (percentage >= 60) {
+
+    difficulty = "⚡ MEDIUM";
+
+    aiMessage =
+        "Good performance! " +
+        "The AI selected a medium challenge.";
+
+}
+
+else {
+
+    difficulty = "🌱 EASY";
+
+    aiMessage =
+        "You need more practice. " +
+        "The AI selected an easier challenge.";
+
+}
+
+
+document.getElementById("difficulty").innerText =
+    "AI Difficulty: " + difficulty;
+
+
+document.getElementById("aiMessage").innerText =
+    "🤖 AI: " + aiMessage;
+
+
+// ==========================================
+// AI QUESTION
+// ==========================================
+
+let aiAnswer = 0;
+
+
+function startAIChallenge() {
+
+    document.getElementById(
+        "aiQuestion"
+    ).style.display = "block";
+
+
+    if (
+        difficulty.includes("HARD")
+    ) {
+
+        document.getElementById(
+            "question"
+        ).innerText =
+            "Which Python concept is commonly used to repeat a block of code?";
+
+
+        document.getElementById(
+            "aiOption0"
+        ).innerText =
+            "Loop";
+
+
+        document.getElementById(
+            "aiOption1"
+        ).innerText =
+            "Variable";
+
+
+        document.getElementById(
+            "aiOption2"
+        ).innerText =
+            "String";
+
+
+        document.getElementById(
+            "aiOption3"
+        ).innerText =
+            "Comment";
+
+
+        aiAnswer = 0;
+
+    }
+
+
+    else if (
+        difficulty.includes("MEDIUM")
+    ) {
+
+        document.getElementById(
+            "question"
+        ).innerText =
+            "Which C keyword is used to make a decision?";
+
+
+        document.getElementById(
+            "aiOption0"
+        ).innerText =
+            "loop";
+
+
+        document.getElementById(
+            "aiOption1"
+        ).innerText =
+            "if";
+
+
+        document.getElementById(
+            "aiOption2"
+        ).innerText =
+            "print";
+
+
+        document.getElementById(
+            "aiOption3"
+        ).innerText =
+            "input";
+
+
+        aiAnswer = 1;
+
+    }
+
+
+    else {
+
+        document.getElementById(
+            "question"
+        ).innerText =
+            "What is 10 + 20?";
+
+
+        document.getElementById(
+            "aiOption0"
+        ).innerText =
+            "20";
+
+
+        document.getElementById(
+            "aiOption1"
+        ).innerText =
+            "25";
+
+
+        document.getElementById(
+            "aiOption2"
+        ).innerText =
+            "30";
+
+
+        document.getElementById(
+            "aiOption3"
+        ).innerText =
+            "40";
+
+
+        aiAnswer = 2;
+
+    }
+
+}
+
+
+// ==========================================
+// AI ANSWER
+// ==========================================
+
+function answerAI(selected) {
+
+    if (selected === aiAnswer) {
+
+        document.getElementById(
+            "message"
+        ).innerText =
+            "🎉 Correct! AI Challenge completed!";
+
+
+        localStorage.setItem(
+            "aiScore",
+            "10"
+        );
+
+
+        setTimeout(function() {
+
+            window.location.href =
+                "/result";
+
+        }, 1200);
+
+    }
+
+    else {
+
+        document.getElementById(
+            "message"
+        ).innerText =
+            "❌ Wrong answer! Try again.";
+
+    }
+
+}
+
+
+// ==========================================
+// AI HINT
+// ==========================================
+
+function showAIHint() {
+
+    document.getElementById(
+        "hint"
+    ).innerText =
+        "🤖 AI Hint: Think about the basic programming concepts you learned.";
+
+}
+
+</script>
+
+</body>
+
+</html>

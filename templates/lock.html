@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Digital Lock</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="game-card">
+
+        <div class="icon">
+            🔐
+        </div>
+
+        <div class="level-title">
+            BONUS LEVEL
+        </div>
+
+        <h1>Digital Lock</h1>
+
+        <p>
+            Solve the clues to unlock the AI Challenge.
+        </p>
+
+        <div class="question-box">
+
+            <h2>Find the 4-digit password</h2>
+
+            <br>
+
+            <p>🔹 First digit = 5 + 2</p>
+
+            <p>🔹 Second digit = number of letters in "C"</p>
+
+            <p>🔹 Third digit = 10 - 7</p>
+
+            <p>🔹 Fourth digit = 2 × 4</p>
+
+        </div>
+
+        <input
+            type="text"
+            id="password"
+            placeholder="Enter 4-digit code"
+            maxlength="4"
+        >
+
+        <button onclick="unlock()">
+            🔓 UNLOCK
+        </button>
+
+        <p id="message"></p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function unlock() {
+
+    const password =
+        document.getElementById("password").value.trim();
+
+
+    const correctPassword = "7138";
+
+
+    if (password === correctPassword) {
+
+        document.getElementById("message").innerText =
+            "🔓 ACCESS GRANTED!";
+
+
+        setTimeout(function() {
+
+            window.location.href = "/ai";
+
+        }, 1200);
+
+    }
+
+    else {
+
+        document.getElementById("message").innerText =
+            "❌ Incorrect code. Try again!";
+
+    }
+
+}
+
+</script>
+
+</body>
+
+</html>

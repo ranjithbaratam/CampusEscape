@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Campus Escape - The AI Challenge</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="game-card">
+
+        <div class="icon">🏫</div>
+
+        <h1>Campus Escape</h1>
+
+        <h2>🤖 The AI Challenge</h2>
+
+        <p class="description">
+            Can you survive the challenges and escape the campus?
+        </p>
+
+        <div class="features">
+
+            <div>🐍 Python</div>
+
+            <div>💻 C Programming</div>
+
+            <div>🧠 Logic</div>
+
+            <div>🔐 Digital Lock</div>
+
+        </div>
+
+        <div class="player-section">
+
+            <label for="playerName">
+                👤 Enter Your Name
+            </label>
+
+            <input
+                type="text"
+                id="playerName"
+                placeholder="Enter your name"
+                maxlength="20"
+            >
+
+            <button onclick="startGame()">
+                🚀 START GAME
+            </button>
+
+        </div>
+
+        <p class="note">
+            ❤️ 3 Lives |
+            🏆 Earn Points |
+            🤖 AI Difficulty
+        </p>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function startGame() {
+
+    const name =
+        document.getElementById("playerName").value.trim();
+
+    if (name === "") {
+
+        alert("Please enter your name!");
+
+        return;
+    }
+
+    localStorage.clear();
+
+    localStorage.setItem(
+        "playerName",
+        name
+    );
+
+    window.location.href = "/game";
+}
+
+</script>
+
+</body>
+
+</html>
