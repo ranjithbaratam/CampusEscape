@@ -1,113 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Python Challenge</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ level_name }} - Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
+    <header>
+        <a href="/map" class="btn-back">← MAP</a>
+        <div style="font-weight: 800;">{{ level_name }}</div>
+        <div style="font-size: 0.85rem; color: #94a3b8;">Mission {{ level_num }} of 3</div>
+    </header>
 
-<div class="container">
-
-    <div class="game-card">
-
-        <div class="level-title">
-            LEVEL 1
+    <main>
+        <div class="hud-grid">
+            <div class="hud-card"><label>Score</label><val id="scoreVal">0</val></div>
+            <div class="hud-card"><label>Lives</label><val id="livesVal">❤️❤️❤️</val></div>
+            <div class="hud-card"><label>Time Left</label><val id="timerVal" class="timer-badge">30s</val></div>
         </div>
 
-        <h1>🐍 Python Challenge</h1>
+        <div class="game-card">
+            <div class="q-tag" id="qNum">Question 1 / 10</div>
+            <div class="q-title" id="qText">Loading sector data...</div>
+            <div class="code-box" id="qCode"></div>
 
-        <p id="playerDisplay"></p>
+            <div class="options-grid" id="optsContainer"></div>
 
-        <div class="game-info">
+            <div class="hint-box" id="hintBox"></div>
+            <div class="exp-box" id="expBox"><strong style="color: #f87171;">Explanation:</strong> <span id="expText"></span></div>
 
-            <span id="lives">
-                ❤️ ❤️ ❤️
-            </span>
+            <div class="action-bar">
+                <button class="hint-btn" id="hintBtn" onclick="useHint()">✨ AI HINT (-5s)</button>
+                <button class="btn-submit-ans" id="actionBtn" onclick="handleAction()" disabled>CHECK ANSWER</button>
+            </div>
 
-            <span>
-                🏆 Score:
-                <b id="score">0</b>
-            </span>
-
-            <span>
-                ⏱️
-                <b id="timer">30</b>s
-            </span>
-
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
         </div>
+    </main>
 
-        <div class="progress">
-
-            <div id="progressBar"></div>
-
-        </div>
-
-        <h2 id="questionNumber">
-            Question 1 / 5
-        </h2>
-
-        <div class="question-box">
-
-            <p id="question"></p>
-
-            <pre id="code"></pre>
-
-        </div>
-
-        <div class="options">
-
-            <button
-                onclick="checkAnswer(0)"
-                id="option0">
-            </button>
-
-            <button
-                onclick="checkAnswer(1)"
-                id="option1">
-            </button>
-
-            <button
-                onclick="checkAnswer(2)"
-                id="option2">
-            </button>
-
-            <button
-                onclick="checkAnswer(3)"
-                id="option3">
-            </button>
-
-        </div>
-
-        <button
-            class="hint-button"
-            onclick="showHint()">
-
-            💡 AI HINT
-
-        </button>
-
-        <p id="hint"></p>
-
-        <p id="message"></p>
-
-    </div>
-
-</div>
-
-
-<script src="{{ url_for('static', filename='game.js') }}"></script>
-
+    <script>
+        // Directly inject Flask variables to prevent timing issues
+        window.CURRENT_LEVEL = "{{ level_id }}";
+    </script>
+    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script src="{{ url_for('static', filename='game.js') }}"></script>
 </body>
-
 </html>

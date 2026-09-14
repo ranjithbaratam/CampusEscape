@@ -1,110 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Vault - Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+        }
+        .vault-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.25);
+        }
+        .badge-vault { 
+            background: rgba(244, 63, 94, 0.15); 
+            color: #f43f5e; 
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            padding: 0.3rem 0.85rem; 
+            border-radius: 20px; 
+            font-size: 0.75rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+        h2 { margin: 1.25rem 0 0.5rem; font-size: 1.8rem; font-weight: 800; color: #fff; }
+        p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; line-height: 1.5; }
+        .puzzle-box { 
+            background: #020617; 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 14px; 
+            padding: 1.25rem; 
+            font-family: 'Fira Code', monospace; 
+            color: #f43f5e; 
+            font-size: 0.9rem; 
+            text-align: left; 
+            margin-bottom: 1.5rem; 
+            line-height: 1.6; 
+        }
+        input.key-input { 
+            width: 100%; 
+            padding: 0.9rem; 
+            border-radius: 12px; 
+            border: 2px solid rgba(255, 255, 255, 0.12); 
+            background: rgba(2, 6, 23, 0.8); 
+            color: #38bdf8; 
+            font-family: 'Fira Code', monospace;
+            font-size: 1.2rem; 
+            font-weight: 700;
+            text-align: center; 
+            margin-bottom: 1.25rem; 
+            outline: none; 
+            letter-spacing: 3px; 
+            transition: all 0.2s;
+        }
+        input.key-input:focus {
+            border-color: #f43f5e;
+            box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.15);
+        }
+        .btn-unlock { 
+            width: 100%; 
+            padding: 0.95rem; 
+            border: none; 
+            border-radius: 12px; 
+            background: linear-gradient(135deg, #f43f5e, #e11d48); 
+            color: white; 
+            font-weight: 800; 
+            font-size: 0.95rem;
+            cursor: pointer; 
+            box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-unlock:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(244, 63, 94, 0.6);
+        }
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Digital Lock</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-
+        /* RESPONSE MODAL UI */
+        .response-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(10px);
+            align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .modal-card {
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-card.success { border: 2px solid #22c55e; }
+        .modal-card.err { border: 2px solid #ef4444; }
+        .modal-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .modal-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .modal-card.success .modal-title { color: #4ade80; }
+        .modal-card.err .modal-title { color: #f87171; }
+        .modal-desc { font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1.5rem; line-height: 1.5; }
+        .btn-modal {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-modal.success { background: #10b981; color: white; }
+        .btn-modal.err { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
+    </style>
 </head>
-
 <body>
+    <div class="vault-card">
+        <span class="badge-vault">FINAL ESCAPE VAULT</span>
+        <h2>Master Terminal</h2>
+        <p>No timer active. Solve the master sequence cipher using variables calculated across Python, C, and Logic.</p>
 
-<div class="container">
-
-    <div class="game-card">
-
-        <div class="icon">
-            🔐
+        <div class="puzzle-box">
+            <span style="color: #94a3b8;">// MASTER SEQUENCE CIPHER</span><br>
+            Python: len("ESCAPE") = A <span style="color: #94a3b8;">// A = 6</span><br>
+            C: (5 % 3) = B <span style="color: #94a3b8;">// B = 2</span><br>
+            Logic: 2, 4, 8, 16, [C] <span style="color: #94a3b8;">// C = 32</span><br><br>
+            <strong style="color: #38bdf8;">MASTER KEY = (A * B) + C</strong>
         </div>
 
-        <div class="level-title">
-            BONUS LEVEL
-        </div>
+        <form id="vaultForm" onsubmit="verifyKey(event)">
+            <input type="text" id="keyInput" class="key-input" placeholder="ENTER KEY" required autocomplete="off">
+            <button type="submit" class="btn-unlock">UNLOCK & ESCAPE CAMPUS</button>
+        </form>
 
-        <h1>Digital Lock</h1>
-
-        <p>
-            Solve the clues to unlock the AI Challenge.
-        </p>
-
-        <div class="question-box">
-
-            <h2>Find the 4-digit password</h2>
-
-            <br>
-
-            <p>🔹 First digit = 5 + 2</p>
-
-            <p>🔹 Second digit = number of letters in "C"</p>
-
-            <p>🔹 Third digit = 10 - 7</p>
-
-            <p>🔹 Fourth digit = 2 × 4</p>
-
-        </div>
-
-        <input
-            type="text"
-            id="password"
-            placeholder="Enter 4-digit code"
-            maxlength="4"
-        >
-
-        <button onclick="unlock()">
-            🔓 UNLOCK
-        </button>
-
-        <p id="message"></p>
-
+        <a href="/map" class="btn-back" style="display: inline-block; margin-top: 1.5rem;">← RETURN TO MAP</a>
     </div>
 
-</div>
+    <!-- FEEDBACK MODAL -->
+    <div class="response-modal" id="responseModal">
+        <div class="modal-card" id="modalCard">
+            <div class="modal-icon" id="modalIcon">🔐</div>
+            <div class="modal-title" id="modalTitle">SECURITY VERIFICATION</div>
+            <div class="modal-desc" id="modalDesc">Validating key...</div>
+            <button class="btn-modal" id="modalBtn" onclick="closeModal()">TRY AGAIN</button>
+        </div>
+    </div>
 
-
-<script>
-
-function unlock() {
-
-    const password =
-        document.getElementById("password").value.trim();
-
-
-    const correctPassword = "7138";
-
-
-    if (password === correctPassword) {
-
-        document.getElementById("message").innerText =
-            "🔓 ACCESS GRANTED!";
-
-
-        setTimeout(function() {
-
-            window.location.href = "/ai";
-
-        }, 1200);
-
-    }
-
-    else {
-
-        document.getElementById("message").innerText =
-            "❌ Incorrect code. Try again!";
-
-    }
-
-}
-
-</script>
-
+    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script src="{{ url_for('static', filename='lock.js') }}"></script>
 </body>
-
 </html>

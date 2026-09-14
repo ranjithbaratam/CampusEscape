@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Escape - Sector Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .stats-panel {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+        .stat-item label { display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
+        .stat-item val { font-size: 1.25rem; font-weight: 800; color: #38bdf8; }
+        
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+        .card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+        }
+        .card:hover:not(.locked) { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 15px 30px -10px rgba(56, 189, 248, 0.2); }
+        .card.locked { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.8); }
+        
+        .badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; width: fit-content; }
+        .b-py { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+        .b-c { background: rgba(192, 132, 252, 0.2); color: #c084fc; }
+        .b-log { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
+        .b-vault { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+        .b-debug { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        
+        .card h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }
+        .card p { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; margin-bottom: 1.25rem; }
+        .btn-act { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
+        .btn-logout { color: #f87171; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.4rem 0.85rem; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand-title">Campus Escape</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 0.85rem; color: #cbd5e1;">Agent: <strong>{{ username }}</strong></span>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="stats-panel">
+            <div class="stat-item"><label>Overall Accuracy</label><val>{{ accuracy }}%</val></div>
+            <div class="stat-item"><label>Required Accuracy</label><val style="color: #4ade80;">60.0%</val></div>
+        </div>
+
+        <div class="section-title">Main Core Missions</div>
+        <div class="grid">
+            <!-- Sector 01: Python -->
+            <a href="/game" class="card">
+                <div>
+                    <span class="badge b-py">Sector 01</span>
+                    <h3>Python Lab</h3>
+                    <p>Debug syntax issues and basic operations.</p>
+                </div>
+                <div class="btn-act">LAUNCH →</div>
+            </a>
+
+            <!-- Sector 02: C Programming -->
+            <a href="{{ '/c' if unlock_c else '#' }}" class="card {{ '' if unlock_c else 'locked' }}">
+                <div>
+                    <span class="badge b-c">Sector 02</span>
+                    <h3>C Programming</h3>
+                    <p>Pointers, formats, and loop execution checks.</p>
+                </div>
+                <div class="btn-act">{{ 'LAUNCH →' if unlock_c else '🔒 CLEAR PYTHON FIRST' }}</div>
+            </a>
+
+            <!-- Sector 03: Logic -->
+            <a href="{{ '/logic' if unlock_logic else '#' }}" class="card {{ '' if unlock_logic else 'locked' }}">
+                <div>
+                    <span class="badge b-log">Sector 03</span>
+                    <h3>Logic Lab</h3>
+                    <p>Boolean algebra, sequences, and deduction.</p>
+                </div>
+                <div class="btn-act">{{ 'LAUNCH →' if unlock_logic else '🔒 CLEAR C FIRST' }}</div>
+            </a>
+        </div>
+
+        <div class="section-title">Special & Practice Terminals</div>
+        <div class="grid">
+            <!-- Practice Mode: Untimed Debugging Lab -->
+            <a href="/debug" class="card">
+                <div>
+                    <span class="badge b-debug">Practice Terminal</span>
+                    <h3>Debugging Lab</h3>
+                    <p>Untimed code execution & error fixing in Python or C.</p>
+                </div>
+                <div class="btn-act" style="color: #10b981;">PRACTICE NOW →</div>
+            </a>
+
+            <!-- Final Sector: Password Room -->
+            <a href="{{ '/lock' if unlock_vault else '#' }}" class="card {{ '' if unlock_vault else 'locked' }}">
+                <div>
+                    <span class="badge b-vault">Final Vault</span>
+                    <h3>Password Room</h3>
+                    <p>Requires clearing Python, C, AND Logic with >= 60% accuracy.</p>
+                </div>
+                <div class="btn-act">
+                    {% if unlock_vault %}
+                        ENTER VAULT →
+                    {% elif not all_completed %}
+                        🔒 COMPLETE ALL 3 SECTORS FIRST
+                    {% else %}
+                        🔒 REQUIRES 60% ACCURACY
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+    </main>
+    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+</body>
+</html>

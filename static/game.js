@@ -1,471 +1,158 @@
-// ==========================================
-// CAMPUS ESCAPE - PYTHON CHALLENGE
-// ==========================================
-
-let score = 0;
-
-let correctAnswers = 0;
-
-let lives = 3;
-
-let currentQuestion = 0;
-
-let timeLeft = 30;
-
-let timer;
-
-let answered = false;
-
-
-// ==========================================
-// PLAYER
-// ==========================================
-
-const playerName =
-    localStorage.getItem("playerName") || "Player";
-
-document.getElementById("playerDisplay").innerText =
-    "👤 Player: " + playerName;
-
-
-// ==========================================
-// QUESTIONS
-// ==========================================
-
-const questions = [
-
-    {
-        question:
-            "What is the output of this code?",
-
-        code:
-`x = 10
-x += 5
-print(x)`,
-
-        options: [
-            "5",
-            "10",
-            "15",
-            "20"
-        ],
-
-        answer: 2,
-
-        hint:
-            "🤖 AI Hint: += adds a value to the existing variable."
-    },
-
-
-    {
-        question:
-            "Which keyword is used to define a function in Python?",
-
-        code: "",
-
-        options: [
-            "function",
-            "def",
-            "fun",
-            "define"
-        ],
-
-        answer: 1,
-
-        hint:
-            "🤖 AI Hint: Python uses a short 3-letter keyword."
-    },
-
-
-    {
-        question:
-            "What is the output?",
-
-        code:
-`x = 5
-
-if x > 3:
-    print("Yes")
-else:
-    print("No")`,
-
-        options: [
-            "Yes",
-            "No",
-            "Error",
-            "Nothing"
-        ],
-
-        answer: 0,
-
-        hint:
-            "🤖 AI Hint: Is 5 greater than 3?"
-    },
-
-
-    {
-        question:
-            "Which data type stores multiple values in an ordered collection?",
-
-        code: "",
-
-        options: [
-            "int",
-            "float",
-            "list",
-            "bool"
-        ],
-
-        answer: 2,
-
-        hint:
-            "🤖 AI Hint: Python lists use square brackets [ ]."
-    },
-
-
-    {
-        question:
-            "What is the output?",
-
-        code:
-`for i in range(3):
-    print(i)`,
-
-        options: [
-            "1 2 3",
-            "0 1 2",
-            "0 1 2 3",
-            "3"
-        ],
-
-        answer: 1,
-
-        hint:
-            "🤖 AI Hint: range(3) starts from 0."
-    }
-
-];
-
-
-// ==========================================
-// LOAD QUESTION
-// ==========================================
-
-function loadQuestion() {
-
-    answered = false;
-
-    const q = questions[currentQuestion];
-
-    document.getElementById("questionNumber").innerText =
-        "Question " +
-        (currentQuestion + 1) +
-        " / " +
-        questions.length;
-
-    document.getElementById("question").innerText =
-        q.question;
-
-    document.getElementById("code").innerText =
-        q.code;
-
-
-    for (let i = 0; i < 4; i++) {
-
-        const button =
-            document.getElementById("option" + i);
-
-        button.innerText =
-            String.fromCharCode(65 + i) +
-            ") " +
-            q.options[i];
-
-        button.disabled = false;
-
-    }
-
-
-    document.getElementById("hint").innerText = "";
-
-    document.getElementById("message").innerText = "";
-
-    updateLives();
-
-    updateProgress();
-
-    startTimer();
-
-}
-
-
-// ==========================================
-// CHECK ANSWER
-// ==========================================
-
-function checkAnswer(selected) {
-
-    if (answered) {
-        return;
-    }
-
-    const q = questions[currentQuestion];
-
-    if (selected === q.answer) {
-
-        answered = true;
-
-        score += 10;
-
-        correctAnswers++;
-
-        document.getElementById("score").innerText =
-            score;
-
-        document.getElementById("message").innerText =
-            "✅ Correct! +10 points";
-
-        disableOptions();
-
-        clearInterval(timer);
-
-        setTimeout(nextQuestion, 900);
-
-    }
-
-    else {
-
-        lives--;
-
-        updateLives();
-
-        document.getElementById("message").innerText =
-            "❌ Wrong answer!";
-
-
-        if (lives <= 0) {
-
-            gameOver();
-
+let questions = [], qIdx = 0, score = 0, lives = 3, timer = 30, timerInterval;
+let selectedOptIdx = null;
+let isChecked = false;
+
+async function loadQuestions() {
+    let level = window.CURRENT_LEVEL || 'python';
+    if (level === '1' || level.includes('py')) level = 'python';
+
+    try {
+        const res = await fetch(`/api/get-questions/${level}`);
+        const data = await res.json();
+        
+        if (data.success && data.questions.length > 0) {
+            questions = data.questions;
+            renderQ();
+        } else {
+            document.getElementById('qText').innerText = "Failed to load sector questions. Please return to map.";
         }
-
+    } catch (err) {
+        document.getElementById('qText').innerText = "Network Error: Could not connect to game server.";
     }
-
 }
-
-
-// ==========================================
-// DISABLE OPTIONS
-// ==========================================
-
-function disableOptions() {
-
-    for (let i = 0; i < 4; i++) {
-
-        document.getElementById(
-            "option" + i
-        ).disabled = true;
-
-    }
-
-}
-
-
-// ==========================================
-// NEXT QUESTION
-// ==========================================
-
-function nextQuestion() {
-
-    currentQuestion++;
-
-    if (
-        currentQuestion >=
-        questions.length
-    ) {
-
-        levelComplete();
-
-    }
-
-    else {
-
-        loadQuestion();
-
-    }
-
-}
-
-
-// ==========================================
-// LIVES
-// ==========================================
-
-function updateLives() {
-
-    let hearts = "";
-
-    for (let i = 0; i < lives; i++) {
-
-        hearts += "❤️ ";
-
-    }
-
-    document.getElementById("lives").innerText =
-        hearts;
-
-}
-
-
-// ==========================================
-// PROGRESS BAR
-// ==========================================
-
-function updateProgress() {
-
-    const progress =
-        ((currentQuestion + 1) /
-        questions.length) * 100;
-
-    document.getElementById(
-        "progressBar"
-    ).style.width = progress + "%";
-
-}
-
-
-// ==========================================
-// AI HINT
-// ==========================================
-
-function showHint() {
-
-    const q =
-        questions[currentQuestion];
-
-    document.getElementById("hint").innerText =
-        q.hint;
-
-}
-
-
-// ==========================================
-// TIMER
-// ==========================================
 
 function startTimer() {
+    clearInterval(timerInterval);
+    timer = 30;
+    document.getElementById('timerVal').innerText = `${timer}s`;
+    timerInterval = setInterval(() => {
+        timer--;
+        document.getElementById('timerVal').innerText = `${timer}s`;
+        if (timer <= 0) { clearInterval(timerInterval); handleTimeout(); }
+    }, 1000);
+}
 
-    clearInterval(timer);
+function renderQ() {
+    isChecked = false;
+    selectedOptIdx = null;
+    const q = questions[qIdx];
 
-    timeLeft = 30;
+    // Dynamic total length check
+    const totalQ = questions.length;
+    document.getElementById('qNum').innerText = `Question ${qIdx + 1} / ${totalQ}`;
+    document.getElementById('progressFill').style.width = `${((qIdx + 1) / totalQ) * 100}%`;
+    document.getElementById('qText').innerText = q.text;
 
-    document.getElementById("timer").innerText =
-        timeLeft;
+    const codeEl = document.getElementById('qCode');
+    if (q.code) { codeEl.style.display = 'block'; codeEl.innerText = q.code; }
+    else { codeEl.style.display = 'none'; }
 
+    document.getElementById('hintBox').style.display = 'none';
+    document.getElementById('expBox').style.display = 'none';
+    
+    const actionBtn = document.getElementById('actionBtn');
+    actionBtn.innerText = "CHECK ANSWER";
+    actionBtn.disabled = true;
 
-    timer = setInterval(function() {
+    const optsEl = document.getElementById('optsContainer');
+    optsEl.innerHTML = '';
+    q.opts.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn';
+        btn.innerText = opt;
+        btn.onclick = () => selectOpt(idx, btn);
+        optsEl.appendChild(btn);
+    });
 
-        timeLeft--;
+    startTimer();
+}
+function selectOpt(idx, btn) {
+    if (isChecked) return;
+    if (typeof playSfx === 'function') playSfx('click');
+    selectedOptIdx = idx;
+    
+    document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('actionBtn').disabled = false;
+}
 
-        document.getElementById("timer").innerText =
-            timeLeft;
+function useHint() {
+    if (typeof playSfx === 'function') playSfx('click');
+    timer = Math.max(1, timer - 5);
+    document.getElementById('timerVal').innerText = `${timer}s`;
+    const h = document.getElementById('hintBox');
+    h.innerText = `💡 AI Hint: ${questions[qIdx].hint}`;
+    h.style.display = 'block';
+}
 
+function handleAction() {
+    if (!isChecked) {
+        isChecked = true;
+        clearInterval(timerInterval);
+        const q = questions[qIdx];
+        const allBtns = document.querySelectorAll('.opt-btn');
 
-        if (timeLeft <= 0) {
-
-            clearInterval(timer);
-
+        if (selectedOptIdx === q.correct) {
+            if (typeof playSfx === 'function') playSfx('correct');
+            allBtns[selectedOptIdx].classList.add('correct');
+            score += 100;
+            document.getElementById('scoreVal').innerText = score;
+        } else {
+            if (typeof playSfx === 'function') playSfx('wrong');
+            if (selectedOptIdx !== null) allBtns[selectedOptIdx].classList.add('wrong');
+            allBtns[q.correct].classList.add('correct');
             lives--;
-
             updateLives();
-
-            document.getElementById("message").innerText =
-                "⏰ Time's up!";
-
-
-            if (lives <= 0) {
-
-                gameOver();
-
-            }
-
-            else {
-
-                setTimeout(
-                    nextQuestion,
-                    1000
-                );
-
-            }
-
+            document.getElementById('expText').innerText = q.exp;
+            document.getElementById('expBox').style.display = 'block';
         }
 
-    }, 1000);
-
+        document.getElementById('actionBtn').innerText = "NEXT QUESTION →";
+    } else {
+        if (typeof playSfx === 'function') playSfx('click');
+        qIdx++;
+        if (qIdx < questions.length && lives > 0) renderQ();
+        else saveAndExit();
+    }
 }
 
-
-// ==========================================
-// GAME OVER
-// ==========================================
-
-function gameOver() {
-
-    clearInterval(timer);
-
-    localStorage.setItem(
-        "pythonScore",
-        score
-    );
-
-    localStorage.setItem(
-        "pythonCorrect",
-        correctAnswers
-    );
-
-    alert(
-        "💀 Game Over!\nYour Python Score: " +
-        score
-    );
-
-    window.location.href = "/";
-
+function handleTimeout() {
+    isChecked = true;
+    if (typeof playSfx === 'function') playSfx('wrong');
+    const q = questions[qIdx];
+    document.querySelectorAll('.opt-btn')[q.correct].classList.add('correct');
+    lives--;
+    updateLives();
+    document.getElementById('expText').innerText = "Time expired! " + q.exp;
+    document.getElementById('expBox').style.display = 'block';
+    
+    const actionBtn = document.getElementById('actionBtn');
+    actionBtn.innerText = "NEXT QUESTION →";
+    actionBtn.disabled = false;
 }
 
-
-// ==========================================
-// LEVEL COMPLETE
-// ==========================================
-
-function levelComplete() {
-
-    clearInterval(timer);
-
-    localStorage.setItem(
-        "pythonScore",
-        score
-    );
-
-    localStorage.setItem(
-        "pythonCorrect",
-        correctAnswers
-    );
-
-
-    document.getElementById("message").innerText =
-        "🎉 Python Level Complete!";
-
-
-    setTimeout(function() {
-
-        window.location.href = "/c";
-
-    }, 1200);
-
+function updateLives() {
+    let h = ''; for (let i = 0; i < 3; i++) h += i < lives ? '❤️' : '🖤';
+    document.getElementById('livesVal').innerText = h;
+    if (lives <= 0) setTimeout(() => { alert('Game Over!'); saveAndExit(); }, 300);
 }
 
+async function saveAndExit() {
+    clearInterval(timerInterval);
+    let payload = {};
+    let level = window.CURRENT_LEVEL || 'python';
+    if (level === 'python') payload.python_score = score;
+    if (level === 'c') payload.c_score = score;
+    if (level === 'logic') payload.logic_score = score;
 
-// ==========================================
-// START
-// ==========================================
+    try {
+        await fetch('/api/save-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {}
+    window.location.href = '/map';
+}
 
-loadQuestion();
+document.addEventListener("DOMContentLoaded", loadQuestions);

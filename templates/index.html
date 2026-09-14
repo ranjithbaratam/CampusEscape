@@ -1,104 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Escape - Access Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body {
+            background: #030712;
+            color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+        /* Cyber Background Glows */
+        .bg-glow-1 {
+            position: absolute; top: -10%; left: -10%; width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: 0; pointer-events: none;
+        }
+        .bg-glow-2 {
+            position: absolute; bottom: -10%; right: -10%; width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: 0; pointer-events: none;
+        }
 
-    <title>Campus Escape - The AI Challenge</title>
+        /* Login Card */
+        .login-card {
+            position: relative;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 28px;
+            padding: 3rem 2.5rem;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.1);
+            animation: fadeIn 0.6s ease-out;
+        }
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+        .brand-header { text-align: center; margin-bottom: 2rem; }
+        .brand-logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.3rem;
+        }
+        .brand-tag { font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 2px; }
 
+        /* Form Inputs */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #38bdf8;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        .input-wrapper { position: relative; }
+        .form-input {
+            width: 100%;
+            background: rgba(2, 6, 23, 0.7);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 0.9rem 1.2rem;
+            color: #f8fafc;
+            font-size: 0.95rem;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.25s;
+        }
+        .form-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+            background: rgba(2, 6, 23, 0.9);
+        }
+        .form-input.pin-input {
+            font-family: 'Fira Code', monospace;
+            letter-spacing: 6px;
+            font-size: 1.1rem;
+        }
+
+        /* Action Button */
+        .btn-submit {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1rem;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 10px 20px -5px rgba(2, 132, 199, 0.4);
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(2, 132, 199, 0.6);
+            background: linear-gradient(135deg, #0369a1, #1d4ed8);
+        }
+        .btn-submit:active { transform: translateY(0); }
+
+        /* Feedback Message Box */
+        .msg-box {
+            margin-top: 1.25rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+        .msg-box.err { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+        .msg-box.success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-
 <body>
+    <div class="bg-glow-1"></div>
+    <div class="bg-glow-2"></div>
 
-<div class="container">
-
-    <div class="game-card">
-
-        <div class="icon">🏫</div>
-
-        <h1>Campus Escape</h1>
-
-        <h2>🤖 The AI Challenge</h2>
-
-        <p class="description">
-            Can you survive the challenges and escape the campus?
-        </p>
-
-        <div class="features">
-
-            <div>🐍 Python</div>
-
-            <div>💻 C Programming</div>
-
-            <div>🧠 Logic</div>
-
-            <div>🔐 Digital Lock</div>
-
+    <div class="login-card">
+        <div class="brand-header">
+            <h1 class="brand-logo">Campus Escape</h1>
+            <p class="brand-tag">SOLVE • LEARN • ESCAPE</p>
         </div>
 
-        <div class="player-section">
+        <form id="loginForm" onsubmit="handleAuth(event)">
+            <div class="form-group">
+                <label for="username">USERNAME</label>
+                <div class="input-wrapper">
+                    <input type="text" id="username" class="form-input" placeholder="Enter your name" required autocomplete="off">
+                </div>
+            </div>
 
-            <label for="playerName">
-                👤 Enter Your Name
-            </label>
+            <div class="form-group">
+                <label for="pin">4-DIGIT PIN</label>
+                <div class="input-wrapper">
+                    <input type="password" id="pin" class="form-input pin-input" maxlength="4" placeholder="••••" pattern="[0-9]{4}" required>
+                </div>
+            </div>
 
-            <input
-                type="text"
-                id="playerName"
-                placeholder="Enter your name"
-                maxlength="20"
-            >
+            <button type="submit" id="submitBtn" class="btn-submit">INITIALIZE TERMINAL →</button>
+        </form>
 
-            <button onclick="startGame()">
-                🚀 START GAME
-            </button>
-
-        </div>
-
-        <p class="note">
-            ❤️ 3 Lives |
-            🏆 Earn Points |
-            🤖 AI Difficulty
-        </p>
-
+        <div id="msgBox" class="msg-box"></div>
     </div>
 
-</div>
+    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script>
+        async function handleAuth(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById("submitBtn");
+            const msgBox = document.getElementById("msgBox");
+            const username = document.getElementById("username").value.trim();
+            const pin = document.getElementById("pin").value.trim();
 
+            if (!username || pin.length !== 4) {
+                showMsg("Please enter a valid name and 4-digit numeric PIN.", "err");
+                return;
+            }
 
-<script>
+            submitBtn.disabled = true;
+            submitBtn.innerText = "AUTHENTICATING...";
+            msgBox.style.display = "none";
 
-function startGame() {
+            try {
+                const response = await fetch("/api/auth", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username: username, pin: pin })
+                });
 
-    const name =
-        document.getElementById("playerName").value.trim();
+                const data = await response.json();
 
-    if (name === "") {
+                if (response.ok && data.success) {
+                    if (typeof playSfx === 'function') playSfx('correct');
+                    showMsg("✓ " + data.message + " Redirecting...", "success");
+                    setTimeout(() => {
+                        window.location.href = "/map";
+                    }, 800);
+                } else {
+                    if (typeof playSfx === 'function') playSfx('wrong');
+                    showMsg(data.message || "Authentication failed.", "err");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "INITIALIZE TERMINAL →";
+                }
+            } catch (err) {
+                if (typeof playSfx === 'function') playSfx('wrong');
+                showMsg("Server connection lost. Restarting Flask server...", "err");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "INITIALIZE TERMINAL →";
+            }
+        }
 
-        alert("Please enter your name!");
-
-        return;
-    }
-
-    localStorage.clear();
-
-    localStorage.setItem(
-        "playerName",
-        name
-    );
-
-    window.location.href = "/game";
-}
-
-</script>
-
+        function showMsg(text, type) {
+            const msgBox = document.getElementById("msgBox");
+            msgBox.innerText = text;
+            msgBox.className = "msg-box " + type;
+            msgBox.style.display = "block";
+        }
+    </script>
 </body>
-
 </html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Lab - Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- CodeMirror 5 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+
+    <style>
+        .CodeMirror {
+            height: 220px;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.95rem;
+            padding: 0.5rem 0;
+            background: #020617 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .console-output {
+            background: #020617;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            min-height: 100px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .console-output.err { border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
+        .console-output.success { border-color: rgba(34, 197, 94, 0.4); color: #4ade80; }
+
+        /* C Debug Options Styling */
+        .c-options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .c-opt-btn {
+            background: rgba(30, 41, 59, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            color: #f8fafc;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .c-opt-btn:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
+        .c-opt-btn.selected { border-color: #38bdf8 !important; background: rgba(56, 189, 248, 0.2) !important; }
+        .c-opt-btn.correct { border-color: #22c55e !important; background: rgba(34, 197, 94, 0.2) !important; color: #4ade80 !important; }
+        .c-opt-btn.wrong { border-color: #ef4444 !important; background: rgba(239, 68, 68, 0.2) !important; color: #f87171 !important; }
+
+        .hint-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(8px);
+            align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .hint-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 480px;
+            width: 90%;
+        }
+        .hint-step {
+            background: rgba(168, 85, 247, 0.1);
+            border-left: 3px solid #c084fc;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #e9d5ff;
+            margin-top: 0.75rem;
+        }
+        .completion-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(12px);
+            align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .completion-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/debug" class="btn-back">← CHANGE LANGUAGE</a>
+        <div style="font-weight: 800; text-transform: uppercase;">{{ lang }} Debug Lab</div>
+        <div style="font-size: 0.85rem; color: #94a3b8;" id="progressBadge">0 / 0 Solved</div>
+    </header>
+
+    <main>
+        <div class="hud-grid">
+            <div class="hud-card"><label>Total XP</label><val id="xpVal">0 XP</val></div>
+            <div class="hud-card"><label>Mode</label><val style="color: #38bdf8; text-transform: uppercase;">{{ lang }}</val></div>
+            <div class="hud-card"><label>Status</label><val style="color: #4ade80;">UNTIMED</val></div>
+        </div>
+
+        <div class="game-card">
+            <div class="q-tag" id="taskTitle">Loading challenge...</div>
+            <div class="q-title" id="taskDesc">Please wait...</div>
+
+            <!-- CODE DISPLAY AREA -->
+            <div id="pyEditorArea">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label style="font-size:0.75rem; color:#94a3b8; font-weight:700;">EDIT PYTHON CODE HERE:</label>
+                    <button class="hint-btn" onclick="resetCode()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">🔄 RESET CODE</button>
+                </div>
+                <textarea id="codeTextarea"></textarea>
+            </div>
+
+            <div id="cCodeArea" style="display: none;">
+                <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display: block; margin-bottom: 0.4rem;">BROKEN C CODE:</label>
+                <div class="code-box" id="cCodeDisplay"></div>
+                <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display: block; margin-bottom: 0.4rem;">SELECT THE CORRECT BUG FIX:</label>
+                <div class="c-options-grid" id="cOptionsContainer"></div>
+            </div>
+
+            <!-- TERMINAL OUTPUT -->
+            <div style="margin: 1rem 0;">
+                <label style="display:block; font-size:0.75rem; color:#94a3b8; font-weight:700; margin-bottom:0.4rem;">TERMINAL / FEEDBACK:</label>
+                <div id="consoleOut" class="console-output">Ready for execution...</div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="action-bar" style="flex-wrap: wrap; gap: 0.75rem;">
+                <button class="btn-submit-ans" id="btnRunCode" onclick="runCode()" style="background: linear-gradient(135deg, #0284c7, #2563eb);">▶ RUN CODE</button>
+                <button class="hint-btn" onclick="openHintModal()">💡 AI HINT (<span id="hintLevelBadge">1/3</span>)</button>
+                <button class="btn-submit-ans" onclick="submitFix()" style="background: linear-gradient(135deg, #10b981, #059669);">SUBMIT FIX ✓</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- HINT MODAL -->
+    <div class="hint-modal" id="hintModal">
+        <div class="hint-card">
+            <h3 style="color: #c084fc; margin-bottom: 0.5rem;">💡 Progressive AI Hints</h3>
+            <p style="font-size: 0.8rem; color: #94a3b8;">Hints guide your thinking without giving away the answer.</p>
+            <div id="hintContainer"></div>
+            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
+                <button class="hint-btn" id="btnNextHint" onclick="unlockNextHint()">UNLOCK NEXT HINT</button>
+                <button class="btn-back" onclick="closeHintModal()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPLETION SCREEN -->
+    <div class="completion-overlay" id="completionOverlay">
+        <div class="completion-card">
+            <h2 style="color: #38bdf8; margin-bottom: 0.5rem;">🐞 DEBUG LAB COMPLETE</h2>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">All tasks cleared cleanly!</p>
+            <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <div style="font-size: 1.1rem; font-weight: 800; color: #4ade80;" id="finalStats">Solved: 5/5 | XP: 700</div>
+                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">DEBUGGING SKILL: EXCELLENT</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <a href="/debug" class="btn-submit-ans" style="text-decoration: none;">PLAY OTHER LANGUAGE</a>
+                <button onclick="exitToMap()" class="btn-back" style="text-align: center; border: none; cursor: pointer;">BACK TO CAMPUS MAP</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script>
+        const LANG = "{{ lang }}";
+        let challenges = [];
+        let currentIdx = 0;
+        let totalXP = 0;
+        let hintLevel = 1;
+        let selectedCOpt = null;
+        let editor;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (LANG === 'python') {
+                document.getElementById('pyEditorArea').style.display = 'block';
+                document.getElementById('cCodeArea').style.display = 'none';
+                document.getElementById('btnRunCode').style.display = 'inline-block';
+                editor = CodeMirror.fromTextArea(document.getElementById("codeTextarea"), {
+                    mode: "python",
+                    theme: "dracula",
+                    lineNumbers: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    lineWrapping: true
+                });
+            } else {
+                document.getElementById('pyEditorArea').style.display = 'none';
+                document.getElementById('cCodeArea').style.display = 'block';
+                document.getElementById('btnRunCode').style.display = 'none';
+            }
+            fetchChallenges();
+        });
+
+        async function fetchChallenges() {
+            const res = await fetch(`/api/debug/challenges/${LANG}`);
+            const data = await res.json();
+            if (data.success) {
+                challenges = data.challenges;
+                loadChallenge();
+            }
+        }
+
+        function loadChallenge() {
+            if (currentIdx >= challenges.length) {
+                showCompletionScreen();
+                return;
+            }
+
+            const c = challenges[currentIdx];
+            document.getElementById("taskTitle").innerText = c.title;
+            document.getElementById("taskDesc").innerText = c.description;
+            document.getElementById("progressBadge").innerText = `${currentIdx + 1} / ${challenges.length} Solved`;
+            
+            hintLevel = 1;
+            document.getElementById("hintLevelBadge").innerText = `1/3`;
+
+            const consoleOut = document.getElementById("consoleOut");
+            consoleOut.className = "console-output";
+
+            if (LANG === 'python') {
+                editor.setValue(c.starterCode);
+                consoleOut.innerText = 'Click "RUN CODE" to test execution...';
+            } else {
+                selectedCOpt = null;
+                document.getElementById("cCodeDisplay").innerText = c.starterCode;
+                consoleOut.innerText = 'Select an option above and click "SUBMIT FIX".';
+                
+                const container = document.getElementById("cOptionsContainer");
+                container.innerHTML = "";
+                c.options.forEach((opt, idx) => {
+                    const btn = document.createElement("button");
+                    btn.className = "c-opt-btn";
+                    btn.innerText = opt;
+                    btn.onclick = () => selectCOption(idx, btn);
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        function selectCOption(idx, btn) {
+            if (typeof playSfx === 'function') playSfx('click');
+            selectedCOpt = idx;
+            document.querySelectorAll('.c-opt-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function resetCode() {
+            if (LANG === 'python') {
+                if (typeof playSfx === 'function') playSfx('click');
+                editor.setValue(challenges[currentIdx].starterCode);
+            }
+        }
+
+        async function runCode() {
+            if (LANG !== 'python') return;
+            if (typeof playSfx === 'function') playSfx('click');
+            const consoleOut = document.getElementById("consoleOut");
+            consoleOut.className = "console-output";
+            consoleOut.innerText = "« Executing Python code... »";
+
+            const res = await fetch("/api/debug/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ language: "python", code: editor.getValue() })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                if (typeof playSfx === 'function') playSfx('click');
+                consoleOut.className = "console-output success";
+                consoleOut.innerText = `> Output:\n${data.stdout}`;
+            } else {
+                if (typeof playSfx === 'function') playSfx('wrong');
+                consoleOut.className = "console-output err";
+                consoleOut.innerText = `> Error:\n${data.stderr}`;
+            }
+        }
+
+        async function submitFix() {
+            if (typeof playSfx === 'function') playSfx('click');
+            const consoleOut = document.getElementById("consoleOut");
+            const c = challenges[currentIdx];
+
+            if (LANG === 'python') {
+                consoleOut.className = "console-output";
+                consoleOut.innerText = "« Verifying Fix... »";
+
+                const res = await fetch("/api/debug/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ language: "python", challenge_id: c.id, code: editor.getValue() })
+                });
+                const data = await res.json();
+
+                if (data.passed) {
+                    if (typeof playSfx === 'function') playSfx('correct');
+                    consoleOut.className = "console-output success";
+                    consoleOut.innerText = `✓ DEBUG COMPLETE!\nAll test cases passed!\n+${data.xp} XP`;
+                    totalXP += data.xp;
+                    document.getElementById("xpVal").innerText = `${totalXP} XP`;
+                    setTimeout(() => { currentIdx++; loadChallenge(); }, 1400);
+                } else {
+                    if (typeof playSfx === 'function') playSfx('wrong');
+                    consoleOut.className = "console-output err";
+                    consoleOut.innerText = `✗ NOT FIXED YET\n${data.message}\n\n[EXPECTED OUTPUT]\n${data.expected}\n\n[YOUR OUTPUT]\n${data.stdout || data.stderr}`;
+                }
+            } else {
+                // C Option Submission
+                if (selectedCOpt === null) {
+                    alert("Please select an option before submitting!");
+                    return;
+                }
+                const allBtns = document.querySelectorAll('.c-opt-btn');
+
+                if (selectedCOpt === c.correctOpt) {
+                    if (typeof playSfx === 'function') playSfx('correct');
+                    allBtns[selectedCOpt].classList.add('correct');
+                    consoleOut.className = "console-output success";
+                    consoleOut.innerText = `✓ CORRECT FIX!\n${c.explanation}\n+${c.xp} XP`;
+                    totalXP += c.xp;
+                    document.getElementById("xpVal").innerText = `${totalXP} XP`;
+                    setTimeout(() => { currentIdx++; loadChallenge(); }, 1600);
+                } else {
+                    if (typeof playSfx === 'function') playSfx('wrong');
+                    allBtns[selectedCOpt].classList.add('wrong');
+                    allBtns[c.correctOpt].classList.add('correct');
+                    consoleOut.className = "console-output err";
+                    consoleOut.innerText = `✗ INCORRECT FIX\n${c.explanation}`;
+                }
+            }
+        }
+
+        function openHintModal() {
+            if (typeof playSfx === 'function') playSfx('click');
+            renderHints();
+            document.getElementById("hintModal").style.display = "flex";
+        }
+
+        function closeHintModal() { document.getElementById("hintModal").style.display = "none"; }
+
+        function unlockNextHint() {
+            if (hintLevel < 3) {
+                if (typeof playSfx === 'function') playSfx('click');
+                hintLevel++;
+                document.getElementById("hintLevelBadge").innerText = `${hintLevel}/3`;
+                renderHints();
+            }
+        }
+
+        function renderHints() {
+            const container = document.getElementById("hintContainer");
+            const hints = challenges[currentIdx].hints;
+            container.innerHTML = "";
+
+            for (let i = 0; i < hintLevel; i++) {
+                const div = document.createElement("div");
+                div.className = "hint-step";
+                div.innerHTML = `<strong>Hint ${i + 1}:</strong> ${hints[i]}`;
+                container.appendChild(div);
+            }
+            document.getElementById("btnNextHint").style.display = hintLevel < 3 ? "inline-block" : "none";
+        }
+
+        function showCompletionScreen() {
+            document.getElementById("finalStats").innerText = `Solved: ${challenges.length}/${challenges.length} | XP: ${totalXP}`;
+            document.getElementById("completionOverlay").style.display = "flex";
+        }
+
+        function exitToMap() { window.location.href = '/map'; }
+    </script>
+</body>
+</html>
