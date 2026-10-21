@@ -3,4 +3,5 @@ venv/
 __pycache__/
 *.pyc
 .env
+.flask_secret_key
 campus_escape.db

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en"><head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Feedback inbox · Campus Escape Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:2rem 1rem 4rem;background:#050a16;color:#e5edf8;font-family:'Plus Jakarta Sans',sans-serif}.shell{width:min(1050px,100%);margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.3rem}.kicker{color:#38bdf8;font-size:.7rem;font-weight:800;letter-spacing:.14em}h1{margin:.35rem 0;font-size:clamp(1.65rem,4vw,2.25rem);letter-spacing:-.04em}.muted{color:#94a3b8;font-size:.8rem;line-height:1.6}.link,.button{display:inline-block;padding:.65rem .85rem;border:1px solid rgba(148,163,184,.2);border-radius:9px;background:transparent;color:#cbd5e1;text-decoration:none;font:700 .74rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}.panel{margin:.8rem 0;padding:1rem 1.1rem;border:1px solid rgba(148,163,184,.16);border-radius:15px;background:#0b1425}.thread-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}.thread-head h2{margin:0;font-size:.97rem}.badge{display:inline-block;padding:.27rem .5rem;border-radius:99px;background:rgba(56,189,248,.1);color:#7dd3fc;font-size:.62rem;font-weight:800;text-transform:uppercase}.badge.private{background:rgba(192,132,252,.13);color:#d8b4fe}.badge.hidden{background:rgba(248,113,113,.13);color:#fca5a5}.meta{margin:.35rem 0 .75rem;color:#8493aa;font-size:.66rem}.body{color:#d2ddec;font-size:.82rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.reply{margin:.65rem 0 0 1rem;padding:.7rem .8rem;border-left:2px solid rgba(56,189,248,.24);background:rgba(2,6,23,.25);border-radius:0 10px 10px 0}.reply p{margin:.3rem 0;color:#cbd5e1;font-size:.76rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}.reply-actions{display:flex;gap:.4rem;margin-top:.4rem}.actions{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.8rem}.button:hover{border-color:#38bdf8}.primary{color:#7dd3fc;border-color:rgba(56,189,248,.3)}.danger{color:#fca5a5;border-color:rgba(248,113,113,.28)}textarea{width:100%;min-height:65px;margin-top:.7rem;padding:.7rem .8rem;border:1px solid rgba(148,163,184,.2);border-radius:9px;background:#070f1e;color:#e5edf8;font:inherit;font-size:.78rem;resize:vertical}.empty{padding:1.2rem;border:1px dashed rgba(148,163,184,.2);border-radius:12px;color:#94a3b8}#notice{min-height:1.2rem;color:#7dd3fc;font-size:.76rem}
+        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin:1rem 0}.stat{padding:.8rem .9rem;border:1px solid rgba(148,163,184,.14);border-radius:12px;background:#0b1425}.stat strong{display:block;color:#7dd3fc;font-size:1.2rem}.stat span{color:#94a3b8;font-size:.66rem;font-weight:700}.toolbar{display:grid;grid-template-columns:minmax(180px,1fr) 180px 180px auto;gap:.6rem;margin:1rem 0}.toolbar input,.toolbar select{min-width:0;padding:.68rem .75rem;border:1px solid rgba(148,163,184,.2);border-radius:9px;background:#070f1e;color:#e5edf8;font:inherit;font-size:.76rem}.panel[hidden]{display:none}.thread-tools{display:flex;gap:.4rem;flex-wrap:wrap}.panel .thread-head{align-items:center}.panel .badge{white-space:nowrap}.button:focus-visible,.link:focus-visible,.toolbar input:focus-visible,.toolbar select:focus-visible,textarea:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}.button:disabled{opacity:.55;cursor:wait}.no-results{display:none;padding:1.2rem;border:1px dashed rgba(148,163,184,.2);border-radius:12px;color:#94a3b8;text-align:center}.profile-chip{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;margin-top:.75rem;padding:.5rem .7rem;border:1px solid rgba(148,163,184,.17);border-radius:11px;background:rgba(8,15,30,.8);font-size:.7rem}.profile-chip span{color:#94a3b8}.profile-chip strong{color:#dbeafe}.profile-id{font-family:monospace}
+        @media(max-width:720px){body{padding:1rem .7rem 3rem}.top,.thread-head{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}.thread-tools{width:100%}.thread-tools .button{flex:1}}
+    </style>
+</head><body><main class="shell">
+    <header class="top"><div><span class="kicker">CAMPUS ESCAPE · ADMIN</span><h1>Feedback inbox</h1><p class="muted">Private feedback is visible only here and to its sender. Community threads and replies can be moderated here.</p><div class="profile-chip"><span>Administrator</span><strong>{{ account_username }}</strong><span>· ID</span><strong class="profile-id">{{ account_player_id }}</strong></div></div><a class="link" href="/admin">← Management</a></header>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section class="stats" aria-label="Feedback overview"><div class="stat"><strong id="totalCount">0</strong><span>ALL MESSAGES</span></div><div class="stat"><strong id="openCount">0</strong><span>OPEN</span></div><div class="stat"><strong id="privateCount">0</strong><span>PRIVATE TO ADMIN</span></div><div class="stat"><strong id="communityCount">0</strong><span>COMMUNITY</span></div></section>
+    <section class="toolbar" aria-label="Filter feedback"><input id="searchFeedback" type="search" placeholder="Search title, message, or player ID" aria-label="Search feedback"><select id="filterChannel" aria-label="Filter by audience"><option value="all">All messages</option><option value="admin">Sent to admin · private</option><option value="community">Sent to everyone · community</option></select><select id="filterStatus" aria-label="Filter by status"><option value="all">All statuses</option><option value="open">Open</option><option value="resolved">Resolved</option><option value="hidden">Hidden</option></select><button class="button" type="button" onclick="exportFeedback()">Export CSV</button></section>
+    {% if threads %}
+        {% for thread in threads %}
+        <article class="panel feedback-item" data-channel="{{ thread.channel }}" data-status="{{ thread.status|lower }}" data-hidden="{{ 'true' if thread.hidden else 'false' }}" data-search="{{ (thread.subject ~ ' ' ~ thread.message ~ ' ' ~ thread.author_id)|lower|e }}" data-subject="{{ thread.subject|e }}" data-message="{{ thread.message|e }}" data-player="{{ thread.author_id|e }}" data-created="{{ thread.created_at|e }}">
+            <div class="thread-head"><h2>{{ thread.subject }}</h2><div style="display:flex;gap:.4rem;flex-wrap:wrap"><span class="badge {% if thread.channel == 'admin' %}private{% endif %}">{{ 'Private to admin' if thread.channel == 'admin' else 'Community' }}</span><span class="badge">{{ thread.status }}</span>{% if thread.hidden %}<span class="badge hidden">Hidden</span>{% endif %}</div></div>
+            <div class="meta">{{ thread.author_id }} · {{ thread.created_at }}</div>
+            <div class="body">{{ thread.message }}</div>
+            {% for reply in thread.replies %}
+                <div class="reply"><div class="meta">Reply from {{ reply.author_id }} · {{ reply.created_at }}{% if reply.hidden %} · hidden{% endif %}</div><p>{{ reply.message }}</p><div class="reply-actions"><button class="button {% if not reply.hidden %}danger{% endif %}" type="button" onclick="moderateReply({{ reply.id }}, '{{ 'restore' if reply.hidden else 'hide' }}',this)">{{ 'Restore reply' if reply.hidden else 'Hide reply' }}</button><button class="button danger" type="button" onclick="deleteReply({{ reply.id }},this)">Delete reply</button></div></div>
+            {% endfor %}
+            <textarea id="reply-{{ thread.id }}" maxlength="1200" placeholder="Reply to this message…" aria-label="Reply to {{ thread.subject }}"></textarea>
+            <div class="actions thread-tools">
+                <button class="button primary" type="button" onclick="sendReply({{ thread.id }},this)">Send admin reply</button>
+                <button class="button" type="button" onclick="moderateThread({{ thread.id }}, '{{ 'reopen' if thread.status == 'resolved' else 'resolve' }}',this)">{{ 'Reopen' if thread.status == 'resolved' else 'Mark resolved' }}</button>
+                <button class="button danger" type="button" onclick="moderateThread({{ thread.id }}, '{{ 'restore' if thread.hidden else 'hide' }}',this)">{{ 'Restore post' if thread.hidden else 'Hide post' }}</button>
+                <button class="button danger" type="button" onclick="deleteFeedback({{ thread.id }},this)">Delete post</button>
+            </div>
+        </article>
+        {% endfor %}
+    {% else %}<div class="empty">No feedback has been sent yet.</div>{% endif %}<div id="noResults" class="no-results">No messages match these filters. Try changing your search.</div>
+</main><script>
+const csrfToken={{ csrf_token|tojson }};
+async function requestJson(url,payload){
+    const res=await fetch(url,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken,'Accept':'application/json'},body:JSON.stringify(payload)});
+    let data={};try{data=await res.json();}catch(_){throw new Error('The server returned an unreadable response. Refresh the page and sign in again if needed.');}
+    if(!res.ok||!data.success)throw new Error(data.message||('Request failed ('+res.status+').'));
+    return data;
+}
+function showNotice(text){const notice=document.getElementById('notice');notice.textContent=text;notice.scrollIntoView({block:'nearest',behavior:'smooth'});}
+async function withAction(button,task){
+    const original=button.textContent;button.disabled=true;button.textContent='Saving…';
+    try{const data=await task();showNotice(data.message+' Refreshing inbox…');setTimeout(()=>location.reload(),1000);}
+    catch(error){button.disabled=false;button.textContent=original;showNotice(error.message);}
+}
+function sendReply(id,button){
+    const field=document.getElementById('reply-'+id);
+    withAction(button,async()=>{const result=await requestJson('/api/feedback/'+id+'/reply',{message:field.value});field.value='';return result;});
+}
+function moderateThread(id,action,button){withAction(button,()=>requestJson('/api/admin/feedback/'+id+'/moderate',{action}));}
+function moderateReply(id,action,button){withAction(button,()=>requestJson('/api/admin/feedback/replies/'+id+'/moderate',{action}));}
+function deleteFeedback(id,button){if(!confirm('Permanently delete this feedback post and all its replies? This cannot be undone.'))return;withAction(button,()=>requestJson('/api/admin/feedback/'+id+'/delete',{}));}
+function deleteReply(id,button){if(!confirm('Permanently delete this reply? This cannot be undone.'))return;withAction(button,()=>requestJson('/api/admin/feedback/replies/'+id+'/delete',{}));}
+const feedbackItems=[...document.querySelectorAll('.feedback-item')];
+document.getElementById('totalCount').textContent=feedbackItems.length;
+document.getElementById('openCount').textContent=feedbackItems.filter(item=>item.dataset.status==='open'&&item.dataset.hidden==='false').length;
+document.getElementById('privateCount').textContent=feedbackItems.filter(item=>item.dataset.channel==='admin').length;
+document.getElementById('communityCount').textContent=feedbackItems.filter(item=>item.dataset.channel==='community').length;
+function applyFilters(){
+    const query=document.getElementById('searchFeedback').value.trim().toLowerCase();
+    const channel=document.getElementById('filterChannel').value;
+    const status=document.getElementById('filterStatus').value;
+    let shown=0;
+    feedbackItems.forEach(item=>{
+        const matchesQuery=!query||item.dataset.search.includes(query);
+        const matchesChannel=channel==='all'||item.dataset.channel===channel;
+        const matchesStatus=status==='all'||(status==='hidden'?item.dataset.hidden==='true':item.dataset.status===status&&item.dataset.hidden==='false');
+        item.hidden=!(matchesQuery&&matchesChannel&&matchesStatus);
+        if(!item.hidden)shown++;
+    });
+    document.getElementById('noResults').style.display=shown?'none':'block';
+}
+['searchFeedback','filterChannel','filterStatus'].forEach(id=>document.getElementById(id).addEventListener(id==='searchFeedback'?'input':'change',applyFilters));
+function exportFeedback(){
+    const quote=value=>'"'+String(value||'').replaceAll('"','""')+'"';
+    const rows=[['Title','Message','Player ID','Audience','Status','Hidden','Created']];
+    feedbackItems.forEach(item=>rows.push([item.dataset.subject,item.dataset.message,item.dataset.player,item.dataset.channel,item.dataset.status,item.dataset.hidden,item.dataset.created]));
+    const csv='\uFEFF'+rows.map(row=>row.map(quote).join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    const link=document.createElement('a');link.href=url;link.download='campus-escape-feedback.csv';link.click();URL.revokeObjectURL(url);
+}
+</script></body></html>

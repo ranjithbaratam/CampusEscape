@@ -11,32 +11,50 @@
     <header>
         <a href="/map" class="btn-back">← MAP</a>
         <div style="font-weight: 800;">{{ level_name }}</div>
-        <div style="font-size: 0.85rem; color: #94a3b8;">Mission {{ level_num }} of 3</div>
+        <div style="display:flex;gap:.7rem;align-items:center;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><span>Mission {{ level_num }} of 3</span></div>
     </header>
 
     <main>
+        <section class="mission-brief" aria-label="Mission instructions">
+            <div><span class="mission-kicker">MISSION BRIEF</span><p>Choose the best answer. Each question has 45 seconds; three missed answers end the run. One free hint is available per question.</p><span class="mission-keyboard">Keys 1–4 select an option · Enter checks or continues</span></div>
+            <div class="mission-rules"><span>10 QUESTIONS</span><span>+100 POINTS PER CORRECT ANSWER</span></div>
+        </section>
         <div class="hud-grid">
             <div class="hud-card"><label>Score</label><val id="scoreVal">0</val></div>
-            <div class="hud-card"><label>Lives</label><val id="livesVal">❤️❤️❤️</val></div>
-            <div class="hud-card"><label>Time Left</label><val id="timerVal" class="timer-badge">30s</val></div>
+            <div class="hud-card"><label>Lives</label><val id="livesVal" aria-label="3 lives remaining">❤️❤️❤️</val></div>
+            <div class="hud-card"><label>Time Left</label><val id="timerVal" class="timer-badge">45s</val></div>
         </div>
+        <div class="timer-track" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="45" aria-valuenow="45"><span id="timerFill"></span></div>
 
         <div class="game-card">
-            <div class="q-tag" id="qNum">Question 1 / 10</div>
+            <div class="question-heading"><div class="q-tag" id="qNum">Question 1 / 10</div><span class="question-meta" id="qMeta"></span></div>
             <div class="q-title" id="qText">Loading sector data...</div>
-            <div class="code-box" id="qCode"></div>
+            <div class="game-status" id="gameStatus" role="status" hidden></div>
+            <pre class="code-box" id="qCode"></pre>
 
-            <div class="options-grid" id="optsContainer"></div>
+            <div class="options-grid" id="optsContainer" role="group" aria-label="Answer options"></div>
 
-            <div class="hint-box" id="hintBox"></div>
-            <div class="exp-box" id="expBox"><strong style="color: #f87171;">Explanation:</strong> <span id="expText"></span></div>
+            <div class="hint-box" id="hintBox" role="status"></div>
+            <div class="exp-box" id="expBox"><strong id="expHeading">Explanation:</strong> <span id="expText"></span></div>
 
             <div class="action-bar">
-                <button class="hint-btn" id="hintBtn" onclick="useHint()">✨ AI HINT (-5s)</button>
+                <button class="hint-btn" id="hintBtn" onclick="useHint()">💡 GET A HINT</button>
                 <button class="btn-submit-ans" id="actionBtn" onclick="handleAction()" disabled>CHECK ANSWER</button>
             </div>
 
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+            <div class="progress-bar-bg" role="progressbar" aria-label="Quiz questions" aria-valuemin="0" aria-valuemax="10" aria-valuenow="1"><div class="progress-bar-fill" id="progressFill"></div></div>
+            <div class="progress-caption" id="progressCaption">Question 1 of 10</div>
+        </div>
+
+        <div class="quiz-finish-overlay" id="finishOverlay" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+            <section class="quiz-finish-card">
+                <div class="finish-mark">✓</div>
+                <span class="mission-kicker">SECTOR REPORT</span>
+                <h1 id="finishTitle">Mission complete</h1>
+                <p id="finishMessage">Your result has been saved.</p>
+                <div class="finish-stats"><div><strong id="finishScore">0</strong><span>POINTS</span></div><div><strong id="finishAccuracy">0%</strong><span>ACCURACY</span></div><div><strong id="finishCorrect">0/0</strong><span>CORRECT</span></div></div>
+                <div class="finish-actions"><button class="btn-submit-ans" onclick="retrySector()">TRY ANOTHER RUN</button><a class="btn-back" href="/map">RETURN TO MAP</a></div>
+            </section>
         </div>
     </main>
 

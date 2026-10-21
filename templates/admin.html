@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin tools · Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; padding: 2rem 1.1rem 4rem; background: #050a16; color: #e5edf8; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .admin-shell { width: min(1120px, 100%); margin: auto; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+        .brand { color: #38bdf8; font-size: .78rem; font-weight: 800; letter-spacing: .13em; }
+        h1 { margin: .35rem 0 0; font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.04em; }
+        .subtitle { margin: .5rem 0 0; color: #94a3b8; font-size: .9rem; line-height: 1.6; }
+        .back-link { padding: .7rem .9rem; border: 1px solid rgba(148,163,184,.2); border-radius: 10px; color: #cbd5e1; text-decoration: none; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .85rem; margin: 1.4rem 0; }
+        .stat, .panel { border: 1px solid rgba(148,163,184,.15); border-radius: 16px; background: #0b1425; }
+        .stat { padding: 1.1rem 1.25rem; }
+        .stat span { display: block; color: #94a3b8; font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+        .stat strong { display: block; margin-top: .35rem; color: #7dd3fc; font-size: 1.65rem; }
+        .panel { overflow: hidden; }
+        .panel-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; padding: 1.15rem 1.25rem; border-bottom: 1px solid rgba(148,163,184,.12); }
+        h2 { margin: 0; font-size: 1.05rem; }
+        .panel-heading p { margin: .3rem 0 0; color: #94a3b8; font-size: .75rem; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; min-width: 800px; border-collapse: collapse; }
+        th, td { padding: .85rem .9rem; text-align: left; border-bottom: 1px solid rgba(148,163,184,.1); }
+        th { color: #94a3b8; font-size: .63rem; letter-spacing: .08em; text-transform: uppercase; }
+        td { color: #dbe5f0; font-size: .78rem; }
+        .id { color: #7dd3fc; font: 600 .73rem 'Fira Code', monospace; white-space: nowrap; }
+        .role { display: inline-block; padding: .28rem .5rem; border-radius: 99px; background: rgba(56,189,248,.1); color: #7dd3fc; font-size: .65rem; font-weight: 800; text-transform: uppercase; }
+        .actions { display: flex; gap: .45rem; }
+        .action { border: 1px solid rgba(148,163,184,.2); border-radius: 8px; padding: .48rem .58rem; background: rgba(148,163,184,.07); color: #cbd5e1; font: inherit; font-size: .68rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .action:hover { border-color: #38bdf8; }
+        .action.delete { color: #fca5a5; border-color: rgba(248,113,113,.25); }
+        .action.delete:hover { border-color: #f87171; }
+        .empty { padding: 1.5rem; color: #94a3b8; }
+        #notice { min-height: 1.4rem; margin: .8rem 0 0; color: #7dd3fc; font-size: .8rem; }
+        .qa-tools { margin-bottom: 1rem; padding: 1.2rem 1.25rem; }
+        .qa-row { display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; margin-top:1rem; }
+        .qa-select { min-width: 190px; padding:.7rem .8rem; border:1px solid rgba(148,163,184,.24); border-radius:9px; background:#071020; color:#e2e8f0; font:inherit; font-size:.78rem; }
+        .qa-note { margin:.55rem 0 0; color:#94a3b8; font-size:.72rem; line-height:1.5; }
+        .action.primary { border-color:rgba(56,189,248,.3); background:rgba(56,189,248,.12); color:#7dd3fc; }
+        @media(max-width:650px) { body { padding-inline: .75rem; } .topbar { align-items: flex-start; flex-direction: column; } .stats { grid-template-columns: 1fr; } .stat { padding: .9rem 1rem; } }
+    </style>
+</head>
+<body>
+<main class="admin-shell">
+    <header class="topbar">
+        <div><div class="brand">CAMPUS ESCAPE · ADMIN</div><h1>Management</h1><p class="subtitle">Signed in as {{ admin_username }}. Review accounts and manage saved progress.</p></div>
+        <div style="display:flex;gap:.55rem;flex-wrap:wrap;">
+            <a class="back-link" href="/admin/feedback">Feedback inbox</a>
+            <a class="back-link" href="/feedback">Community feedback</a>
+            <a class="back-link" href="/dashboard">← Personal dashboard</a>
+        </div>
+    </header>
+
+    <section class="stats" aria-label="Site totals">
+        <article class="stat"><span>Accounts</span><strong>{{ stats.accounts }}</strong></article>
+        <article class="stat"><span>Quiz attempts</span><strong>{{ stats.attempts }}</strong></article>
+        <article class="stat"><span>Combined best scores</span><strong>{{ stats.combined_best }}</strong></article>
+        <article class="stat"><span>Open feedback</span><strong>{{ feedback_stats.open }}</strong></article>
+    </section>
+
+    <section class="panel qa-tools" aria-labelledby="qaHeading">
+        <h2 id="qaHeading">Admin lab preview</h2>
+        <p class="qa-note">Quickly inspect labs and later levels. Completion shortcuts affect only your admin account; they do not add scores or issue a certificate.</p>
+        <div class="qa-row">
+            <label for="qaLab" class="qa-note">Choose a lab</label>
+            <select id="qaLab" class="qa-select">
+                <option value="python">Python Lab</option>
+                <option value="c">C Programming Lab</option>
+                <option value="logic">Logic Lab</option>
+            </select>
+            <button class="action primary" type="button" onclick="openLabPreview()">Open in new tab</button>
+            <button class="action" type="button" onclick="completeSelected()">Mark selected lab complete</button>
+            <button class="action" type="button" onclick="completeAll()">Complete all labs</button>
+            <button class="action delete" type="button" onclick="resetQa()">Reset my QA progress</button>
+        </div>
+        <div class="qa-row">
+            <a class="action primary" href="/lock" target="_blank" rel="noopener">Open Master Cipher Vault</a>
+            <a class="action primary" href="/certificate" target="_blank" rel="noopener">Preview certificate</a>
+        </div>
+    </section>
+
+    <section class="panel qa-tools" aria-labelledby="debugQaHeading">
+        <h2 id="debugQaHeading">Debugging Lab QA</h2>
+        <p class="qa-note">Jump directly to Python or C debugging challenges, or mark challenge levels mastered to inspect the completed state.</p>
+        <div class="qa-row">
+            <label for="qaDebugLanguage" class="qa-note">Choose a language</label>
+            <select id="qaDebugLanguage" class="qa-select">
+                <option value="python">Python Debug Lab</option>
+                <option value="c">C Debug Lab</option>
+            </select>
+            <button class="action primary" type="button" onclick="openDebugPreview()">Open in new tab</button>
+            <button class="action" type="button" onclick="completeDebugSelected()">Master selected levels</button>
+            <button class="action" type="button" onclick="completeDebugAll()">Master all debug levels</button>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="accountsHeading">
+        <div class="panel-heading"><div><h2 id="accountsHeading">Accounts</h2><p>Reset clears quiz, vault, and debugging progress. Delete permanently removes an account and its saved records.</p></div></div>
+        {% if accounts %}
+        <div class="table-wrap"><table>
+            <thead><tr><th>Username</th><th>Player ID</th><th>Role</th><th>Best score</th><th>Attempts</th><th>Sector clears</th><th>Debug XP</th><th>Vault</th><th>Manage</th></tr></thead>
+            <tbody>{% for account in accounts %}
+                <tr>
+                    <td>{{ account.username }}</td><td class="id">{{ account.player_id }}</td><td><span class="role">{{ account.role }}</span></td>
+                    <td>{{ account.best_score or 0 }}</td><td>{{ account.attempts or 0 }}</td><td>{{ account.sectors }}/3</td><td>{{ account.debug_xp }}</td>
+                    <td>{{ 'Cleared' if account.vault_cleared else '—' }}</td>
+                    <td><div class="actions">
+                        {% if account.role != 'admin' %}
+                        <button class="action" type="button" onclick="manageAccount('reset', {{ account.player_id|tojson }})">Reset</button>
+                        <button class="action delete" type="button" onclick="manageAccount('delete', {{ account.player_id|tojson }})">Delete</button>
+                        {% else %}<span class="role">Protected</span>{% endif %}
+                    </div></td>
+                </tr>
+            {% endfor %}</tbody>
+        </table></div>
+        {% else %}<p class="empty">No accounts have registered yet.</p>{% endif %}
+    </section>
+    <p id="notice" role="status" aria-live="polite"></p>
+</main>
+<script>
+    const csrfToken = {{ csrf_token|tojson }};
+    const labLinks = { python: '/game', c: '/c', logic: '/logic' };
+    const debugLinks = { python: '/debug/python', c: '/debug/c' };
+    async function qaRequest(path, body = {}) {
+        const response = await fetch(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'The request could not be completed.');
+        return data;
+    }
+    async function completeSelected() {
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/complete', { sector: document.getElementById('qaLab').value });
+            notice.textContent = data.message;
+        } catch (error) { notice.textContent = error.message; }
+    }
+    async function completeAll() {
+        if (!window.confirm('Mark all three labs complete on your admin account for QA navigation? No scores or certificate will be added.')) return;
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/complete', { sector: 'all' });
+            notice.textContent = data.message;
+        } catch (error) { notice.textContent = error.message; }
+    }
+    async function openLabPreview() {
+        const sector = document.getElementById('qaLab').value;
+        const previewTab = window.open('about:blank', '_blank');
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/complete', { sector });
+            notice.textContent = data.message;
+            if (previewTab) previewTab.location.href = labLinks[sector];
+            else notice.textContent += ' Allow pop-ups to open the lab in a new tab.';
+        } catch (error) {
+            if (previewTab) previewTab.close();
+            notice.textContent = error.message;
+        }
+    }
+    async function resetQa() {
+        if (!window.confirm('Reset all quiz, vault, and debugging progress on your admin account?')) return;
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/reset');
+            notice.textContent = data.message;
+            window.setTimeout(() => window.location.reload(), 650);
+        } catch (error) { notice.textContent = error.message; }
+    }
+    async function openDebugPreview() {
+        const language = document.getElementById('qaDebugLanguage').value;
+        const tab = window.open(debugLinks[language], '_blank');
+        if (!tab) document.getElementById('notice').textContent = 'Allow pop-ups to open the Debug Lab in a new tab.';
+    }
+    async function completeDebugSelected() {
+        const language = document.getElementById('qaDebugLanguage').value;
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/debug-complete', { language });
+            notice.textContent = data.message;
+        } catch (error) { notice.textContent = error.message; }
+    }
+    async function completeDebugAll() {
+        if (!window.confirm('Mark every Python and C debugging challenge mastered on your admin account?')) return;
+        const notice = document.getElementById('notice');
+        try {
+            const data = await qaRequest('/api/admin/qa/debug-complete', { language: 'all' });
+            notice.textContent = data.message;
+        } catch (error) { notice.textContent = error.message; }
+    }
+    async function manageAccount(action, playerId) {
+        const wording = action === 'delete'
+            ? `Permanently delete ${playerId} and all its saved data? This cannot be undone.`
+            : `Reset all saved progress for ${playerId}? This cannot be undone.`;
+        if (!window.confirm(wording)) return;
+        const notice = document.getElementById('notice');
+        notice.textContent = 'Saving change…';
+        try {
+            const response = await fetch(`/api/admin/accounts/${encodeURIComponent(playerId)}/${action}`, {
+                method: 'POST', headers: { 'X-CSRF-Token': csrfToken }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'The change could not be saved.');
+            notice.textContent = data.message;
+            window.setTimeout(() => window.location.reload(), 650);
+        } catch (error) { notice.textContent = error.message || 'The request failed. Please try again.'; }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>My Dashboard · Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body { min-height: 100vh; padding: 1.5rem 1rem 3rem; }
+        .dashboard { width: min(100%, 1080px); margin: 0 auto; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 0 0 1.25rem; }
+        .dash-header h1 { color: #f8fafc; font-size: clamp(1.35rem,3vw,1.8rem); }
+        .dash-header p { margin-top: .25rem; color: #94a3b8; font-size: .8rem; }
+        .account-panel { display: flex; justify-content: space-between; align-items: center; gap: 1.2rem; margin: 1rem 0 1.3rem; padding: clamp(1.1rem,3vw,1.7rem); border: 1px solid rgba(56,189,248,.22); border-radius: 20px; background: radial-gradient(circle at 90% 10%,rgba(56,189,248,.14),transparent 35%),rgba(15,23,42,.82); }
+        .account-label,.section-kicker { display: block; color: #7dd3fc; font-size: .67rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+        .account-id { display: block; margin-top: .4rem; color: #f8fafc; font: 700 clamp(1.35rem,4vw,2rem) 'Fira Code',monospace; letter-spacing: .04em; }
+        .account-help { margin-top: .4rem; color: #94a3b8; font-size: .76rem; line-height: 1.5; }
+        .copy-id { flex: 0 0 auto; padding: .7rem 1rem; border: 1px solid rgba(56,189,248,.3); border-radius: 10px; color: #bae6fd; background: rgba(56,189,248,.1); font: 700 .78rem 'Plus Jakarta Sans',sans-serif; cursor: pointer; }
+        .copy-id:hover { background: rgba(56,189,248,.2); }
+        .copy-status { min-height: 1rem; margin-top: .25rem; color: #6ee7b7; font-size: .7rem; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .85rem; margin-bottom: 1.2rem; }
+        .stat-card,.dash-panel { border: 1px solid rgba(148,163,184,.13); border-radius: 16px; background: rgba(15,23,42,.72); }
+        .stat-card { padding: 1rem; }
+        .stat-card span { display: block; color: #94a3b8; font-size: .67rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .stat-card strong { display: block; margin-top: .45rem; color: #e0f2fe; font-size: 1.4rem; }
+        .dash-panel { margin-bottom: 1.1rem; padding: clamp(1rem,2.5vw,1.4rem); }
+        .panel-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 1rem; }
+        .panel-heading h2 { margin-top: .25rem; color: #f8fafc; font-size: 1.05rem; }
+        .panel-note { color: #8292a8; font-size: .72rem; }
+        .sector-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .8rem; }
+        .sector-card { padding: 1rem; border: 1px solid rgba(148,163,184,.14); border-radius: 13px; background: rgba(2,6,23,.35); }
+        .sector-top { display: flex; justify-content: space-between; align-items: center; gap: .4rem; color: #e2e8f0; font-size: .85rem; font-weight: 700; }
+        .sector-state { color: #94a3b8; font-size: .62rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+        .sector-state.done { color: #6ee7b7; }
+        .sector-score { margin-top: .7rem; color: #7dd3fc; font-size: .78rem; font-weight: 700; }
+        .sector-track { height: 5px; margin-top: .5rem; border-radius: 99px; background: rgba(148,163,184,.15); overflow: hidden; }
+        .sector-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#38bdf8,#818cf8); }
+        .achievement-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(155px,1fr)); gap: .65rem; }
+        .achievement-badge { min-height: 112px; padding: .85rem; border: 1px solid rgba(148,163,184,.13); border-radius: 12px; background: rgba(2,6,23,.32); }
+        .achievement-badge.unlocked { border-color: rgba(52,211,153,.3); background: rgba(6,78,59,.15); }
+        .achievement-icon { font-size: 1.2rem; }
+        .achievement-badge h3 { margin: .3rem 0; color: #e2e8f0; font-size: .8rem; }
+        .achievement-badge p { color: #94a3b8; font-size: .68rem; line-height: 1.4; }
+        .achievement-status { display: block; margin-top: .45rem; color: #77869a; font-size: .6rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        .achievement-badge.unlocked .achievement-status { color: #6ee7b7; }
+        .table-wrap { overflow-x: auto; }
+        .runs-table { width: 100%; border-collapse: collapse; min-width: 540px; }
+        .runs-table th,.runs-table td { padding: .75rem .65rem; border-bottom: 1px solid rgba(148,163,184,.1); text-align: left; }
+        .runs-table th { color: #94a3b8; font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; }
+        .runs-table td { color: #dbe5f0; font-size: .76rem; }
+        .empty-state { padding: 1.1rem; border: 1px dashed rgba(148,163,184,.2); border-radius: 12px; color: #94a3b8; font-size: .8rem; line-height: 1.55; }
+        .empty-state a { color: #7dd3fc; font-weight: 700; }
+        @media (max-width: 760px) { .stat-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .sector-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 480px) { .dash-header { align-items: flex-start; flex-direction: column; } .account-panel { align-items: flex-start; flex-direction: column; } .copy-id { width: 100%; } .panel-heading { align-items: flex-start; flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <main class="dashboard">
+        <header class="dash-header">
+            <div><span class="section-kicker">CAMPUS ESCAPE</span><h1>My dashboard</h1><p>Your progress, achievements, and recent runs.</p></div>
+            <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+                {% if is_admin %}<a href="/admin" class="btn-back">⚙ Admin tools</a>{% endif %}
+                <a href="/feedback" class="btn-back">Feedback & community</a>
+                <a href="/map" class="btn-back">← Back to map</a>
+            </div>
+        </header>
+
+        <section class="account-panel" aria-labelledby="accountHeading">
+            <div>
+                <span class="account-label" id="accountHeading">Your unique player ID</span>
+                <strong class="account-id" id="playerId">{{ player_id }}</strong>
+                <p class="account-help">This ID belongs to your account. Sign in with your username and PIN as usual.</p>
+                <p class="copy-status" id="copyStatus" aria-live="polite"></p>
+            </div>
+            <button class="copy-id" type="button" onclick="copyPlayerId()">Copy player ID</button>
+        </section>
+
+        <section class="stat-grid" aria-label="Personal statistics">
+            <article class="stat-card"><span>Best total score</span><strong>{{ best_score }} <small>pts</small></strong></article>
+            <article class="stat-card"><span>Quiz attempts</span><strong>{{ attempts }}</strong></article>
+            <article class="stat-card"><span>Latest accuracy</span><strong>{{ "%.1f"|format(accuracy) }}<small>%</small></strong></article>
+            <article class="stat-card"><span>Debugging XP</span><strong>{{ debug_xp }} <small>XP</small></strong></article>
+        </section>
+
+        <section class="dash-panel" aria-labelledby="sectorHeading">
+            <div class="panel-heading"><div><span class="section-kicker">LEARNING PATH</span><h2 id="sectorHeading">Sector progress</h2></div><span class="panel-note">Best score from each lab · 1,000 points maximum</span></div>
+            <div class="sector-grid">
+                {% for sector in sectors %}
+                <article class="sector-card">
+                    <div class="sector-top"><span>{{ sector.name }}</span><span class="sector-state {% if sector.cleared %}done{% endif %}">{% if sector.cleared %}✓ Cleared{% else %}In progress{% endif %}</span></div>
+                    <div class="sector-score">{{ sector.best }} / 1000 points</div>
+                    <div class="sector-track" role="progressbar" aria-label="{{ sector.name }} best score" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="{{ sector.best }}"><span style="width: {{ [sector.best / 10, 100]|min }}%"></span></div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="dash-panel" aria-labelledby="achievementHeading">
+            <div class="panel-heading"><div><span class="section-kicker">MILESTONES</span><h2 id="achievementHeading">Achievements</h2></div></div>
+            <div class="achievement-grid">
+                {% for achievement in achievements %}
+                <article class="achievement-badge {% if achievement.unlocked %}unlocked{% endif %}">
+                    <span class="achievement-icon" aria-hidden="true">{{ achievement.icon }}</span>
+                    <h3>{{ achievement.name }}</h3>
+                    <p>{{ achievement.description }}</p>
+                    <span class="achievement-status">{% if achievement.unlocked %}✓ Unlocked{% else %}In progress{% endif %}</span>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="dash-panel" aria-labelledby="historyHeading">
+            <div class="panel-heading"><div><span class="section-kicker">ACTIVITY</span><h2 id="historyHeading">Recent runs</h2></div><span class="panel-note">Up to five latest attempts</span></div>
+            {% if history %}
+            <div class="table-wrap"><table class="runs-table">
+                <thead><tr><th>Date</th><th>Sector</th><th>Run score</th><th>Best total</th><th>Accuracy</th></tr></thead>
+                <tbody>{% for row in history %}<tr>
+                    <td>{{ row.played_at }}</td><td>{{ row.level|title if row.level else "Legacy run" }}</td>
+                    <td>{{ row.run_score or 0 }}</td><td>{{ row.total_score or 0 }}</td><td>{{ "%.1f"|format(row.accuracy or 0) }}%</td>
+                </tr>{% endfor %}</tbody>
+            </table></div>
+            {% else %}
+            <div class="empty-state">No runs recorded yet. Start with the Python Lab from your <a href="/map">sector map</a>.</div>
+            {% endif %}
+        </section>
+    </main>
+    <script>
+        async function copyPlayerId() {
+            const playerId = document.getElementById('playerId').textContent.trim();
+            const status = document.getElementById('copyStatus');
+            try {
+                await navigator.clipboard.writeText(playerId);
+                status.textContent = 'Player ID copied.';
+            } catch (error) {
+                status.textContent = `Select and copy your ID: ${playerId}`;
+            }
+        }
+    </script>
+</body>
+</html>

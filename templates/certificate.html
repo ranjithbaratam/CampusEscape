@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>Achievement Certificate · Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: light; --navy: #13263f; --blue: #245a84; --gold: #b68a3a; --ink: #26374a; --muted: #64748b; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; padding: 2rem 1.1rem; background: #e9eef4; color: var(--ink); font-family: 'DM Sans', sans-serif; }
+        .certificate-tools { display: flex; justify-content: center; gap: .7rem; margin: 0 auto 1.2rem; }
+        .certificate-tools a, .certificate-tools button { display: inline-flex; justify-content: center; align-items: center; min-height: 42px; padding: .65rem 1rem; border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: var(--navy); font: 700 .82rem 'DM Sans', sans-serif; text-decoration: none; cursor: pointer; }
+        .certificate-tools .primary { border-color: var(--navy); background: var(--navy); color: #fff; }
+        .certificate { position: relative; isolation: isolate; width: min(100%, 1050px); margin: auto; padding: clamp(1.4rem, 4vw, 3.3rem); overflow: hidden; border: 1px solid #d4bb83; outline: 1px solid #d4bb83; outline-offset: -10px; background: #fffefa; box-shadow: 0 20px 55px rgba(19,38,63,.12); text-align: center; }
+        .certificate::before, .certificate::after { position: absolute; z-index: -1; width: 250px; height: 250px; border: 1px solid rgba(182,138,58,.15); border-radius: 50%; content: ''; }
+        .certificate::before { top: -155px; left: -125px; box-shadow: 0 0 0 18px rgba(182,138,58,.035), 0 0 0 38px rgba(182,138,58,.03); }
+        .certificate::after { right: -125px; bottom: -155px; box-shadow: 0 0 0 18px rgba(36,90,132,.035), 0 0 0 38px rgba(36,90,132,.03); }
+        .brand { display: flex; align-items: center; justify-content: center; gap: .65rem; color: var(--navy); font-weight: 800; letter-spacing: .16em; font-size: .77rem; }
+        .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold); font-size: 1rem; }
+        .eyebrow { margin-top: 1.35rem; color: var(--gold); font-size: .68rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+        h1 { margin: .4rem 0 .35rem; color: var(--navy); font: 700 clamp(2rem, 5vw, 3.4rem)/1.1 'Playfair Display', Georgia, serif; }
+        .subtitle { color: var(--muted); font-size: .9rem; letter-spacing: .06em; }
+        .divider { display: flex; align-items: center; gap: .8rem; width: min(420px, 82%); margin: 1.5rem auto; color: var(--gold); }
+        .divider::before, .divider::after { height: 1px; flex: 1; background: #dfd2b3; content: ''; }
+        .presented { color: var(--muted); font-size: .82rem; }
+        .recipient { margin: .5rem 0 .7rem; color: var(--navy); font: 700 clamp(1.8rem, 5vw, 2.8rem)/1.2 'Playfair Display', Georgia, serif; overflow-wrap: anywhere; }
+        .statement { width: min(720px, 100%); margin: 0 auto; color: #46576a; font-size: .95rem; line-height: 1.75; }
+        .statement strong { color: var(--navy); }
+        .results { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .65rem; margin: 1.7rem auto 1.5rem; }
+        .result { padding: .85rem .4rem; border: 1px solid #e7e0d2; background: rgba(249,247,241,.72); }
+        .result strong { display: block; color: var(--navy); font-size: 1.15rem; }
+        .result span { display: block; margin-top: .25rem; color: var(--muted); font-size: .61rem; font-weight: 800; letter-spacing: .1em; }
+        .completion-line { display: inline-flex; align-items: center; gap: .4rem; margin: .1rem auto 1.2rem; padding: .45rem .8rem; border: 1px solid #b9d8c7; border-radius: 999px; color: #17603c; background: #f0f8f3; font-size: .72rem; font-weight: 800; letter-spacing: .05em; }
+        .admin-preview { max-width: 720px; margin: 1rem auto 0; padding: .7rem 1rem; border: 1px solid #dc2626; background: #fff1f2; color: #991b1b; font-size: .76rem; font-weight: 800; letter-spacing: .07em; }
+        .certificate-footer { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-top: 1rem; padding-top: 1.1rem; border-top: 1px solid #e5e7eb; text-align: left; }
+        .footer-block { color: var(--muted); font-size: .65rem; line-height: 1.6; letter-spacing: .04em; text-transform: uppercase; }
+        .footer-block strong { display: block; color: var(--navy); font-size: .8rem; letter-spacing: 0; text-transform: none; }
+        .seal { display: grid; place-items: center; width: 72px; height: 72px; flex: 0 0 auto; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold); font-size: .53rem; font-weight: 800; line-height: 1.35; text-align: center; letter-spacing: .08em; }
+        @media (max-width: 620px) {
+            body { padding: 1rem .5rem; }
+            .results { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .certificate-footer { align-items: center; flex-wrap: wrap; }
+            .seal { width: 60px; height: 60px; order: 3; }
+            .certificate-tools { flex-wrap: wrap; }
+        }
+        @page { size: landscape; margin: 10mm; }
+        @media print {
+            body { min-height: 0; padding: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .certificate-tools { display: none; }
+            .certificate { width: 100%; max-width: none; min-height: 180mm; padding: 18mm 22mm 14mm; border: 1px solid #b68a3a; outline-offset: -8px; box-shadow: none; break-inside: avoid; }
+            h1 { font-size: 34pt; }
+            .recipient { font-size: 27pt; }
+            .statement { font-size: 10pt; }
+            .results { margin: 12mm auto 9mm; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="certificate-tools" aria-label="Certificate actions">
+        <a href="/map">← Back to map</a>
+        <a href="/dashboard">View dashboard</a>
+        <button class="primary" type="button" onclick="window.print()">Print / Save as PDF</button>
+    </nav>
+
+    <main class="certificate" aria-labelledby="certificateTitle">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span>CAMPUS ESCAPE</span></div>
+        {% if admin_preview %}<div class="admin-preview">ADMIN PREVIEW · REQUIREMENTS NOT VERIFIED · NOT AN EARNED CERTIFICATE</div>{% endif %}
+        <div class="eyebrow">Certificate of achievement</div>
+        <h1 id="certificateTitle">Learning Milestone</h1>
+        <div class="subtitle">PROGRAMMING · LOGIC · PROBLEM SOLVING</div>
+        <div class="divider" aria-hidden="true">✧</div>
+        <p class="presented">This certificate is presented to</p>
+        <div class="recipient">{{ username }}</div>
+        <p class="statement">For completing the Python, C Programming, and Logic sectors and solving the Master Cipher Vault in <strong>Campus Escape</strong>.</p>
+
+        <section class="results" aria-label="Achievement results">
+            <div class="result"><strong>{{ python_score }} / 1000</strong><span>PYTHON BEST</span></div>
+            <div class="result"><strong>{{ c_score }} / 1000</strong><span>C BEST</span></div>
+            <div class="result"><strong>{{ logic_score }} / 1000</strong><span>LOGIC BEST</span></div>
+            <div class="result"><strong>{{ total_score }} / 3000</strong><span>TOTAL BEST SCORE</span></div>
+            <div class="result"><strong>{{ accuracy }}%</strong><span>OVERALL ACCURACY</span></div>
+        </section>
+        <div class="completion-line" {% if admin_preview %}style="border-color:#fecaca;color:#991b1b;background:#fff1f2"{% endif %}><span aria-hidden="true">{% if admin_preview %}◉{% else %}✓{% endif %}</span> {% if admin_preview %}ADMIN PREVIEW · COMPLETION NOT VERIFIED{% else %}COMPLETION VERIFIED{% endif %}</div>
+
+        <footer class="certificate-footer">
+            <div class="footer-block">{% if admin_preview %}Preview date{% else %}Date awarded{% endif %}<strong>{{ date }}</strong></div>
+            <div class="seal" aria-label="Campus Escape completion seal">CAMPUS<br>ESCAPE<br>VERIFIED</div>
+            <div class="footer-block" style="text-align:right">{% if admin_preview %}Preview reference{% else %}Certificate ID{% endif %}<strong>{{ certificate_id }}</strong></div>
+        </footer>
+    </main>
+</body>
+</html>

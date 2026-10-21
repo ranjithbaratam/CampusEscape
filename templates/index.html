@@ -15,7 +15,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             position: relative;
         }
 
@@ -41,12 +42,19 @@
             border-radius: 28px;
             padding: 3rem 2.5rem;
             width: 100%;
-            max-width: 440px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.1);
+            max-width: 480px;
+            box-shadow: 0 25px 60px -24px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.08);
             animation: fadeIn 0.6s ease-out;
         }
 
         .brand-header { text-align: center; margin-bottom: 2rem; }
+        .brand-mark {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            padding: 0.4rem 0.7rem; margin-bottom: 1.15rem;
+            border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 999px;
+            color: #7dd3fc; background: rgba(14, 165, 233, 0.08);
+            font-size: 0.68rem; font-weight: 800; letter-spacing: 1.2px;
+        }
         .brand-logo {
             font-size: 2.2rem;
             font-weight: 800;
@@ -57,6 +65,11 @@
             margin-bottom: 0.3rem;
         }
         .brand-tag { font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 2px; }
+        .brand-intro { margin: 0.85rem auto 0; max-width: 330px; color: #a7b4c8; font-size: 0.88rem; line-height: 1.6; }
+        .form-help { margin-top: 0.45rem; color: #8391a8; font-size: 0.76rem; line-height: 1.5; }
+        .access-note { display: flex; gap: 0.7rem; align-items: flex-start; margin-top: 1.1rem; padding: 0.85rem 0.95rem; border: 1px solid rgba(148,163,184,.13); border-radius: 12px; background: rgba(15,23,42,.5); color: #94a3b8; font-size: .76rem; line-height: 1.5; }
+        .access-note strong { color: #cbd5e1; }
+        .access-icon { font-size: 1rem; }
 
         /* Form Inputs */
         .form-group { margin-bottom: 1.25rem; }
@@ -115,6 +128,8 @@
             background: linear-gradient(135deg, #0369a1, #1d4ed8);
         }
         .btn-submit:active { transform: translateY(0); }
+        .btn-submit:disabled { opacity: .7; cursor: wait; transform: none; }
+        @media (max-width: 520px) { body { padding: 1rem; } .login-card { padding: 2.2rem 1.35rem; border-radius: 22px; } .brand-logo { font-size: 1.9rem; } }
 
         /* Feedback Message Box */
         .msg-box {
@@ -141,27 +156,33 @@
 
     <div class="login-card">
         <div class="brand-header">
+            <div class="brand-mark"><span>✦</span> CAMPUS ESCAPE ACCESS</div>
             <h1 class="brand-logo">Campus Escape</h1>
             <p class="brand-tag">SOLVE • LEARN • ESCAPE</p>
+            <p class="brand-intro">Sign in to continue your missions, track progress, and unlock your certificate.</p>
         </div>
 
         <form id="loginForm" onsubmit="handleAuth(event)">
             <div class="form-group">
-                <label for="username">USERNAME</label>
+                <label for="identifier">USERNAME OR ACCOUNT ID</label>
                 <div class="input-wrapper">
-                    <input type="text" id="username" class="form-input" placeholder="Enter your name" required autocomplete="off">
+                    <input type="text" id="identifier" class="form-input" placeholder="Username or CE-XXXXXXXXXX" minlength="3" maxlength="24" required autocomplete="username" autocapitalize="none" spellcheck="false">
                 </div>
+                <p class="form-help">Use the username you registered with or the unique ID shown on your dashboard.</p>
             </div>
 
             <div class="form-group">
                 <label for="pin">4-DIGIT PIN</label>
                 <div class="input-wrapper">
-                    <input type="password" id="pin" class="form-input pin-input" maxlength="4" placeholder="••••" pattern="[0-9]{4}" required>
+                    <input type="password" id="pin" class="form-input pin-input" inputmode="numeric" maxlength="4" placeholder="••••" pattern="[0-9]{4}" required autocomplete="current-password">
                 </div>
+                <p class="form-help">Your 4-digit PIN stays the same whether you sign in with your username or ID.</p>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn-submit">INITIALIZE TERMINAL →</button>
+            <button type="submit" id="submitBtn" class="btn-submit">SIGN IN OR CREATE ACCOUNT <span aria-hidden="true">→</span></button>
         </form>
+
+        <div class="access-note"><span class="access-icon">🔐</span><span><strong>New here?</strong> Enter a username and a 4-digit PIN to create your account. Your unique account ID will appear on your dashboard.</span></div>
 
         <div id="msgBox" class="msg-box"></div>
     </div>
@@ -173,11 +194,11 @@
             
             const submitBtn = document.getElementById("submitBtn");
             const msgBox = document.getElementById("msgBox");
-            const username = document.getElementById("username").value.trim();
+            const identifier = document.getElementById("identifier").value.trim();
             const pin = document.getElementById("pin").value.trim();
 
-            if (!username || pin.length !== 4) {
-                showMsg("Please enter a valid name and 4-digit numeric PIN.", "err");
+            if (!identifier || !/^\d{4}$/.test(pin)) {
+                showMsg("Enter your username or account ID and a valid 4-digit PIN.", "err");
                 return;
             }
 
@@ -189,7 +210,7 @@
                 const response = await fetch("/api/auth", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: username, pin: pin })
+                    body: JSON.stringify({ identifier: identifier, pin: pin })
                 });
 
                 const data = await response.json();
@@ -204,13 +225,13 @@
                     if (typeof playSfx === 'function') playSfx('wrong');
                     showMsg(data.message || "Authentication failed.", "err");
                     submitBtn.disabled = false;
-                    submitBtn.innerText = "INITIALIZE TERMINAL →";
+                    submitBtn.innerHTML = 'SIGN IN OR CREATE ACCOUNT <span aria-hidden="true">→</span>';
                 }
             } catch (err) {
                 if (typeof playSfx === 'function') playSfx('wrong');
                 showMsg("Server connection lost. Restarting Flask server...", "err");
                 submitBtn.disabled = false;
-                submitBtn.innerText = "INITIALIZE TERMINAL →";
+                submitBtn.innerHTML = 'SIGN IN OR CREATE ACCOUNT <span aria-hidden="true">→</span>';
             }
         }
 

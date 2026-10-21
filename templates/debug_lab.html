@@ -7,21 +7,62 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
-    <!-- CodeMirror 5 CDN -->
+    <!-- CodeMirror 5 CDN & Languages -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/clike/clike.min.js"></script>
 
     <style>
         .CodeMirror {
-            height: 220px;
+            height: 240px;
             border-radius: 12px;
             font-family: 'Fira Code', monospace;
             font-size: 0.95rem;
             padding: 0.5rem 0;
             background: #020617 !important;
             border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        #codeTextarea {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 240px;
+            padding: 1rem;
+            border-radius: 12px;
+            color: #e2e8f0;
+            background: #020617;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font: 0.95rem/1.55 'Fira Code', monospace;
+            tab-size: 4;
+        }
+        .editor-notice { display: none; color: #fbbf24; font-size: .78rem; margin: .45rem 0; }
+        .editor-meta { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; color: #94a3b8; font-size: .72rem; margin: .45rem 0; }
+        .editor-meta kbd { padding: .12rem .35rem; border: 1px solid rgba(148,163,184,.25); border-radius: 5px; color: #cbd5e1; background: rgba(15,23,42,.8); font: inherit; }
+        .challenge-progress { height: 6px; background: rgba(148,163,184,.16); border-radius: 99px; overflow: hidden; margin: .8rem 0 1rem; }
+        .challenge-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#38bdf8,#818cf8); transition: width .25s ease; }
+        .challenge-nav { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .75rem; margin: 1.1rem 0; }
+        .challenge-nav button { min-height: 42px; }
+        .challenge-nav button:last-child { justify-self: end; }
+        .challenge-nav-label { color: #94a3b8; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+        .support-heading { margin: 1.25rem 0 .55rem; color: #cbd5e1; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+        .support-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1.2rem; }
+        .support-tool { display: grid; align-content: center; justify-items: start; gap: .25rem; min-height: 72px; padding: .7rem .9rem; border-radius: 12px; text-align: left; }
+        .support-tool small { color: #a8b6ca; font-size: .68rem; font-weight: 500; }
+        .editor-toolbar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
+        .run-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: .85rem; }
+        .run-actions button { min-height: 48px; }
+        .action-bar { justify-content: initial; }
+        .action-bar button:disabled { opacity: .42; cursor: not-allowed; }
+        @media (max-width: 640px) {
+            .support-tools { grid-template-columns: 1fr; }
+            .support-tool { min-height: 58px; }
+            .challenge-nav { grid-template-columns: 1fr 1fr; }
+            .challenge-nav-label { grid-column: 1 / -1; grid-row: 1; }
+            .challenge-nav button:first-child { grid-column: 1; grid-row: 2; }
+            .challenge-nav button:last-child { grid-column: 2; grid-row: 2; }
+            .run-actions { grid-template-columns: 1fr; }
+            .editor-toolbar { align-items: flex-start; }
         }
         .console-output {
             background: #020617;
@@ -38,30 +79,6 @@
         }
         .console-output.err { border-color: rgba(239, 68, 68, 0.4); color: #f87171; }
         .console-output.success { border-color: rgba(34, 197, 94, 0.4); color: #4ade80; }
-
-        /* C Debug Options Styling */
-        .c-options-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-            margin: 1rem 0;
-        }
-        .c-opt-btn {
-            background: rgba(30, 41, 59, 0.7);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 0.85rem 1rem;
-            color: #f8fafc;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.85rem;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .c-opt-btn:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.1); }
-        .c-opt-btn.selected { border-color: #38bdf8 !important; background: rgba(56, 189, 248, 0.2) !important; }
-        .c-opt-btn.correct { border-color: #22c55e !important; background: rgba(34, 197, 94, 0.2) !important; color: #4ade80 !important; }
-        .c-opt-btn.wrong { border-color: #ef4444 !important; background: rgba(239, 68, 68, 0.2) !important; color: #f87171 !important; }
 
         .hint-modal {
             display: none;
@@ -113,7 +130,7 @@
     <header>
         <a href="/debug" class="btn-back">← CHANGE LANGUAGE</a>
         <div style="font-weight: 800; text-transform: uppercase;">{{ lang }} Debug Lab</div>
-        <div style="font-size: 0.85rem; color: #94a3b8;" id="progressBadge">0 / 0 Solved</div>
+        <div style="display:flex;gap:.8rem;align-items:center;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><span id="progressBadge">Loading progress…</span></div>
     </header>
 
     <main>
@@ -122,37 +139,52 @@
             <div class="hud-card"><label>Mode</label><val style="color: #38bdf8; text-transform: uppercase;">{{ lang }}</val></div>
             <div class="hud-card"><label>Status</label><val style="color: #4ade80;">UNTIMED</val></div>
         </div>
+        <p class="runner-note">
+            {% if lang == 'python' %}
+            🔒 Python runs in a restricted teaching interpreter. Imports, files, network access, and system commands are unavailable.
+            {% else %}
+            ☁️ C code is compiled in an online sandbox. Do not include passwords or private information in code. Compiler errors will appear below.
+            {% endif %}
+        </p>
 
         <div class="game-card">
             <div class="q-tag" id="taskTitle">Loading challenge...</div>
             <div class="q-title" id="taskDesc">Please wait...</div>
+            <div class="challenge-progress" role="progressbar" aria-label="Challenges mastered" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><span id="masteryFill"></span></div>
 
-            <!-- CODE DISPLAY AREA -->
-            <div id="pyEditorArea">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label style="font-size:0.75rem; color:#94a3b8; font-weight:700;">EDIT PYTHON CODE HERE:</label>
-                    <button class="hint-btn" onclick="resetCode()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">🔄 RESET CODE</button>
-                </div>
-                <textarea id="codeTextarea"></textarea>
+            <div class="challenge-nav" aria-label="Challenge navigation">
+                <button class="btn-back" id="btnPrevious" onclick="goToChallenge(currentIdx - 1)" disabled>← Previous</button>
+                <div class="challenge-nav-label" id="challengeNavLabel">Challenge 1</div>
+                <button class="btn-back" id="btnNext" onclick="goToChallenge(currentIdx + 1)">Next →</button>
             </div>
 
-            <div id="cCodeArea" style="display: none;">
-                <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display: block; margin-bottom: 0.4rem;">BROKEN C CODE:</label>
-                <div class="code-box" id="cCodeDisplay"></div>
-                <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display: block; margin-bottom: 0.4rem;">SELECT THE CORRECT BUG FIX:</label>
-                <div class="c-options-grid" id="cOptionsContainer"></div>
+            <div class="support-heading">Need help?</div>
+            <div class="support-tools">
+                <button class="hint-btn support-tool" onclick="openHintModal()"><span>💡 Get a hint <span id="hintLevelBadge">1/3</span></span><small>Step-by-step guidance</small></button>
+                <button class="hint-btn support-tool" id="aiCoachBtn" onclick="askAiCoach()"><span>✨ Explain an error</span><small>Explain the latest run output</small></button>
+                <button class="hint-btn support-tool" onclick="showAnswer()"><span>👁 Show answer</span><small>Load the solution into the editor</small></button>
+            </div>
+
+            <!-- CODE DISPLAY AREA -->
+            <div id="editorArea">
+                <div class="editor-toolbar">
+                    <label style="font-size:0.75rem; color:#94a3b8; font-weight:700;">EDIT CODE BELOW:</label>
+                    <button class="hint-btn" onclick="resetCode()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">🔄 RESET CODE</button>
+                </div>
+                <p id="editorNotice" class="editor-notice" role="status">Enhanced editor did not load. The basic editor is ready to use.</p>
+                <div class="editor-meta"><span id="draftStatus" aria-live="polite">Draft autosaves on this device</span><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Run · <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd> Submit</span></div>
+                <textarea id="codeTextarea"></textarea>
             </div>
 
             <!-- TERMINAL OUTPUT -->
             <div style="margin: 1rem 0;">
-                <label style="display:block; font-size:0.75rem; color:#94a3b8; font-weight:700; margin-bottom:0.4rem;">TERMINAL / FEEDBACK:</label>
+                <label style="display:block; font-size:0.75rem; color:#94a3b8; font-weight:700; margin-bottom:0.4rem;">TERMINAL / COMPILER OUTPUT:</label>
                 <div id="consoleOut" class="console-output">Ready for execution...</div>
             </div>
 
             <!-- ACTION BUTTONS -->
-            <div class="action-bar" style="flex-wrap: wrap; gap: 0.75rem;">
+            <div class="run-actions">
                 <button class="btn-submit-ans" id="btnRunCode" onclick="runCode()" style="background: linear-gradient(135deg, #0284c7, #2563eb);">▶ RUN CODE</button>
-                <button class="hint-btn" onclick="openHintModal()">💡 AI HINT (<span id="hintLevelBadge">1/3</span>)</button>
                 <button class="btn-submit-ans" onclick="submitFix()" style="background: linear-gradient(135deg, #10b981, #059669);">SUBMIT FIX ✓</button>
             </div>
         </div>
@@ -161,7 +193,7 @@
     <!-- HINT MODAL -->
     <div class="hint-modal" id="hintModal">
         <div class="hint-card">
-            <h3 style="color: #c084fc; margin-bottom: 0.5rem;">💡 Progressive AI Hints</h3>
+            <h3 style="color: #c084fc; margin-bottom: 0.5rem;">💡 Progressive hints</h3>
             <p style="font-size: 0.8rem; color: #94a3b8;">Hints guide your thinking without giving away the answer.</p>
             <div id="hintContainer"></div>
             <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
@@ -174,13 +206,14 @@
     <!-- COMPLETION SCREEN -->
     <div class="completion-overlay" id="completionOverlay">
         <div class="completion-card">
-            <h2 style="color: #38bdf8; margin-bottom: 0.5rem;">🐞 DEBUG LAB COMPLETE</h2>
-            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">All tasks cleared cleanly!</p>
+            <h2 style="color: #38bdf8; margin-bottom: 0.5rem;">🐞 END OF CHALLENGES</h2>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">You can revisit any challenge. Only submitted fixes count as solved.</p>
             <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
                 <div style="font-size: 1.1rem; font-weight: 800; color: #4ade80;" id="finalStats">Solved: 5/5 | XP: 700</div>
                 <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">DEBUGGING SKILL: EXCELLENT</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button onclick="restartChallenges()" class="btn-back" style="text-align:center;border:1px solid rgba(255,255,255,.15);cursor:pointer;">REVIEW CHALLENGES</button>
                 <a href="/debug" class="btn-submit-ans" style="text-decoration: none;">PLAY OTHER LANGUAGE</a>
                 <button onclick="exitToMap()" class="btn-back" style="text-align: center; border: none; cursor: pointer;">BACK TO CAMPUS MAP</button>
             </div>
@@ -190,20 +223,50 @@
     <script src="{{ url_for('static', filename='sound.js') }}"></script>
     <script>
         const LANG = "{{ lang }}";
+        const USER_ID = {{ username|tojson }};
         let challenges = [];
         let currentIdx = 0;
         let totalXP = 0;
         let hintLevel = 1;
-        let selectedCOpt = null;
+        let solvedChallenges = [];
         let editor;
 
+        function draftStorageKey(challengeId) {
+            return `campus-escape:${USER_ID}:${LANG}:${challengeId}`;
+        }
+
+        function setDraftStatus(message) {
+            const status = document.getElementById('draftStatus');
+            if (status) status.textContent = message;
+        }
+
+        function saveDraft() {
+            const challenge = challenges[currentIdx];
+            if (!challenge || !editor) return;
+            try {
+                localStorage.setItem(draftStorageKey(challenge.id), editor.getValue());
+                setDraftStatus(`Draft saved on this device · ${new Date().toLocaleTimeString()}`);
+            } catch (error) {
+                setDraftStatus('Local draft storage is unavailable in this browser.');
+            }
+        }
+
+        function readDraft(challenge) {
+            try { return localStorage.getItem(draftStorageKey(challenge.id)); }
+            catch (error) { return null; }
+        }
+
+        function clearDraft(challenge) {
+            try { localStorage.removeItem(draftStorageKey(challenge.id)); }
+            catch (error) { /* Reset still works for this page session. */ }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
-            if (LANG === 'python') {
-                document.getElementById('pyEditorArea').style.display = 'block';
-                document.getElementById('cCodeArea').style.display = 'none';
-                document.getElementById('btnRunCode').style.display = 'inline-block';
-                editor = CodeMirror.fromTextArea(document.getElementById("codeTextarea"), {
-                    mode: "python",
+            const textarea = document.getElementById("codeTextarea");
+            if (window.CodeMirror && typeof window.CodeMirror.fromTextArea === 'function') {
+                const modeType = LANG === 'python' ? 'python' : 'text/x-csrc';
+                editor = CodeMirror.fromTextArea(textarea, {
+                    mode: modeType,
                     theme: "dracula",
                     lineNumbers: true,
                     indentUnit: 4,
@@ -211,19 +274,47 @@
                     lineWrapping: true
                 });
             } else {
-                document.getElementById('pyEditorArea').style.display = 'none';
-                document.getElementById('cCodeArea').style.display = 'block';
-                document.getElementById('btnRunCode').style.display = 'none';
+                editor = {
+                    getValue: () => textarea.value,
+                    setValue: value => { textarea.value = value; }
+                };
+                document.getElementById("editorNotice").style.display = "block";
             }
-            fetchChallenges();
+            if (editor.on) editor.on('change', saveDraft);
+            else textarea.addEventListener('input', saveDraft);
+            window.addEventListener('keydown', event => {
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.shiftKey) submitFix();
+                    else runCode();
+                }
+            }, true);
+            loadSavedProgress().then(fetchChallenges);
         });
 
+        async function loadSavedProgress() {
+            try {
+                const response = await fetch('/api/debug/progress');
+                const data = await response.json();
+                if (data.success) {
+                    totalXP = data.xp;
+                    solvedChallenges = data.solved || [];
+                    document.getElementById('xpVal').innerText = `${totalXP} XP`;
+                }
+            } catch (err) { /* challenge loading reports connection errors */ }
+        }
+
         async function fetchChallenges() {
-            const res = await fetch(`/api/debug/challenges/${LANG}`);
-            const data = await res.json();
-            if (data.success) {
-                challenges = data.challenges;
-                loadChallenge();
+            try {
+                const res = await fetch(`/api/debug/challenges/${LANG}`);
+                const data = await res.json();
+                if (data.success) {
+                    challenges = data.challenges;
+                    loadChallenge();
+                }
+            } catch (err) {
+                document.getElementById("consoleOut").innerText = "Failed to fetch challenge bank.";
             }
         }
 
@@ -234,9 +325,17 @@
             }
 
             const c = challenges[currentIdx];
+            document.getElementById("btnPrevious").disabled = currentIdx === 0;
+            document.getElementById("btnNext").disabled = currentIdx === challenges.length - 1;
+            document.getElementById("challengeNavLabel").innerText = `Challenge ${currentIdx + 1} of ${challenges.length}`;
             document.getElementById("taskTitle").innerText = c.title;
             document.getElementById("taskDesc").innerText = c.description;
-            document.getElementById("progressBadge").innerText = `${currentIdx + 1} / ${challenges.length} Solved`;
+            const solvedCount = challenges.filter(item => solvedChallenges.includes(item.id)).length;
+            document.getElementById("progressBadge").innerText = `CHALLENGE ${currentIdx + 1} / ${challenges.length} · ${solvedCount} MASTERED`;
+            const progress = document.querySelector('.challenge-progress');
+            progress.setAttribute('aria-valuemax', challenges.length);
+            progress.setAttribute('aria-valuenow', solvedCount);
+            document.getElementById('masteryFill').style.width = `${challenges.length ? solvedCount / challenges.length * 100 : 0}%`;
             
             hintLevel = 1;
             document.getElementById("hintLevelBadge").innerText = `1/3`;
@@ -244,62 +343,82 @@
             const consoleOut = document.getElementById("consoleOut");
             consoleOut.className = "console-output";
 
-            if (LANG === 'python') {
-                editor.setValue(c.starterCode);
-                consoleOut.innerText = 'Click "RUN CODE" to test execution...';
-            } else {
-                selectedCOpt = null;
-                document.getElementById("cCodeDisplay").innerText = c.starterCode;
-                consoleOut.innerText = 'Select an option above and click "SUBMIT FIX".';
-                
-                const container = document.getElementById("cOptionsContainer");
-                container.innerHTML = "";
-                c.options.forEach((opt, idx) => {
-                    const btn = document.createElement("button");
-                    btn.className = "c-opt-btn";
-                    btn.innerText = opt;
-                    btn.onclick = () => selectCOption(idx, btn);
-                    container.appendChild(btn);
+            const draft = readDraft(c);
+            editor.setValue(draft === null ? c.starterCode : draft);
+            setDraftStatus(draft === null ? 'Draft autosaves on this device' : 'Restored your saved draft');
+            consoleOut.innerText = 'Click "RUN CODE" to test execution...';
+        }
+
+        function goToChallenge(index) {
+            if (index < 0 || index >= challenges.length) return;
+            saveDraft();
+            currentIdx = index;
+            loadChallenge();
+        }
+
+        function restartChallenges() {
+            document.getElementById("completionOverlay").style.display = "none";
+            currentIdx = 0;
+            loadChallenge();
+        }
+
+        async function showAnswer() {
+            const challenge = challenges[currentIdx];
+            if (!challenge) return;
+            const consoleOut = document.getElementById("consoleOut");
+            try {
+                const response = await fetch('/api/debug/solution', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ challenge_id: challenge.id })
                 });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Answer unavailable.');
+                editor.setValue(data.solution);
+                if (editor.refresh) editor.refresh();
+                consoleOut.className = 'console-output';
+                consoleOut.innerText = 'Answer loaded into the editor. Review it, run it, or submit it when ready.';
+            } catch (error) {
+                consoleOut.className = 'console-output err';
+                consoleOut.innerText = error.message || 'Could not load the answer. Check the connection.';
             }
         }
 
-        function selectCOption(idx, btn) {
-            if (typeof playSfx === 'function') playSfx('click');
-            selectedCOpt = idx;
-            document.querySelectorAll('.c-opt-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-        }
-
         function resetCode() {
-            if (LANG === 'python') {
-                if (typeof playSfx === 'function') playSfx('click');
+            if (typeof playSfx === 'function') playSfx('click');
+            if (challenges[currentIdx]) {
+                clearDraft(challenges[currentIdx]);
                 editor.setValue(challenges[currentIdx].starterCode);
+                setDraftStatus('Starter code restored');
             }
         }
 
         async function runCode() {
-            if (LANG !== 'python') return;
             if (typeof playSfx === 'function') playSfx('click');
             const consoleOut = document.getElementById("consoleOut");
             consoleOut.className = "console-output";
-            consoleOut.innerText = "« Executing Python code... »";
+            consoleOut.innerText = "« Executing code on server sandbox... »";
 
-            const res = await fetch("/api/debug/run", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ language: "python", code: editor.getValue() })
-            });
-            const data = await res.json();
+            try {
+                const res = await fetch("/api/debug/run", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ language: LANG, code: editor.getValue() })
+                });
+                const data = await res.json();
 
-            if (data.success) {
-                if (typeof playSfx === 'function') playSfx('click');
-                consoleOut.className = "console-output success";
-                consoleOut.innerText = `> Output:\n${data.stdout}`;
-            } else {
-                if (typeof playSfx === 'function') playSfx('wrong');
+                if (data.success) {
+                    if (typeof playSfx === 'function') playSfx('click');
+                    consoleOut.className = "console-output success";
+                    consoleOut.innerText = `> Output:\n${data.stdout || '(No output produced)'}`;
+                } else {
+                    if (typeof playSfx === 'function') playSfx('wrong');
+                    consoleOut.className = "console-output err";
+                    consoleOut.innerText = `> ${data.stderr || 'Execution Error'}`;
+                }
+            } catch (err) {
                 consoleOut.className = "console-output err";
-                consoleOut.innerText = `> Error:\n${data.stderr}`;
+                consoleOut.innerText = "Server connection lost. Please verify Flask backend is running.";
             }
         }
 
@@ -308,14 +427,14 @@
             const consoleOut = document.getElementById("consoleOut");
             const c = challenges[currentIdx];
 
-            if (LANG === 'python') {
-                consoleOut.className = "console-output";
-                consoleOut.innerText = "« Verifying Fix... »";
+            consoleOut.className = "console-output";
+            consoleOut.innerText = "« Verifying Fix... »";
 
+            try {
                 const res = await fetch("/api/debug/submit", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ language: "python", challenge_id: c.id, code: editor.getValue() })
+                    body: JSON.stringify({ language: LANG, challenge_id: c.id, code: editor.getValue() })
                 });
                 const data = await res.json();
 
@@ -323,7 +442,8 @@
                     if (typeof playSfx === 'function') playSfx('correct');
                     consoleOut.className = "console-output success";
                     consoleOut.innerText = `✓ DEBUG COMPLETE!\nAll test cases passed!\n+${data.xp} XP`;
-                    totalXP += data.xp;
+                    totalXP = data.total_xp;
+                    if (!solvedChallenges.includes(c.id)) solvedChallenges.push(c.id);
                     document.getElementById("xpVal").innerText = `${totalXP} XP`;
                     setTimeout(() => { currentIdx++; loadChallenge(); }, 1400);
                 } else {
@@ -331,29 +451,30 @@
                     consoleOut.className = "console-output err";
                     consoleOut.innerText = `✗ NOT FIXED YET\n${data.message}\n\n[EXPECTED OUTPUT]\n${data.expected}\n\n[YOUR OUTPUT]\n${data.stdout || data.stderr}`;
                 }
-            } else {
-                // C Option Submission
-                if (selectedCOpt === null) {
-                    alert("Please select an option before submitting!");
-                    return;
-                }
-                const allBtns = document.querySelectorAll('.c-opt-btn');
+            } catch (err) {
+                consoleOut.className = "console-output err";
+                consoleOut.innerText = "Error verifying submission. Check connection.";
+            }
+        }
 
-                if (selectedCOpt === c.correctOpt) {
-                    if (typeof playSfx === 'function') playSfx('correct');
-                    allBtns[selectedCOpt].classList.add('correct');
-                    consoleOut.className = "console-output success";
-                    consoleOut.innerText = `✓ CORRECT FIX!\n${c.explanation}\n+${c.xp} XP`;
-                    totalXP += c.xp;
-                    document.getElementById("xpVal").innerText = `${totalXP} XP`;
-                    setTimeout(() => { currentIdx++; loadChallenge(); }, 1600);
-                } else {
-                    if (typeof playSfx === 'function') playSfx('wrong');
-                    allBtns[selectedCOpt].classList.add('wrong');
-                    allBtns[c.correctOpt].classList.add('correct');
-                    consoleOut.className = "console-output err";
-                    consoleOut.innerText = `✗ INCORRECT FIX\n${c.explanation}`;
+        async function askAiCoach() {
+            if (typeof playSfx === 'function') playSfx('click');
+            const code = editor.getValue();
+            const terminalText = document.getElementById("consoleOut").innerText;
+
+            try {
+                const res = await fetch("/api/explain-error", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: code, stderr: terminalText, language: LANG })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    alert("🤖 AI COACH BREAKDOWN:\n\n" + data.explanation);
                 }
+            } catch (err) {
+                alert("AI Coach unavailable right now.");
             }
         }
 
@@ -382,14 +503,18 @@
             for (let i = 0; i < hintLevel; i++) {
                 const div = document.createElement("div");
                 div.className = "hint-step";
-                div.innerHTML = `<strong>Hint ${i + 1}:</strong> ${hints[i]}`;
+                const label = document.createElement("strong");
+                label.textContent = `Hint ${i + 1}: `;
+                div.appendChild(label);
+                div.appendChild(document.createTextNode(hints[i]));
                 container.appendChild(div);
             }
             document.getElementById("btnNextHint").style.display = hintLevel < 3 ? "inline-block" : "none";
         }
 
         function showCompletionScreen() {
-            document.getElementById("finalStats").innerText = `Solved: ${challenges.length}/${challenges.length} | XP: ${totalXP}`;
+            const solvedCount = challenges.filter(item => solvedChallenges.includes(item.id)).length;
+            document.getElementById("finalStats").innerText = `Solved: ${solvedCount}/${challenges.length} | Total XP: ${totalXP}`;
             document.getElementById("completionOverlay").style.display = "flex";
         }
 

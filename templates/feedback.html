@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Feedback & Community · Campus Escape</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{box-sizing:border-box} body{margin:0;min-height:100vh;padding:2rem 1rem 4rem;background:#050a16;color:#e5edf8;font-family:'Plus Jakarta Sans',sans-serif}
+        .shell{width:min(950px,100%);margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.3rem}.kicker{color:#38bdf8;font-size:.72rem;font-weight:800;letter-spacing:.14em} h1{margin:.35rem 0;font-size:clamp(1.7rem,4vw,2.3rem);letter-spacing:-.04em}.muted{color:#94a3b8;font-size:.82rem;line-height:1.6}.link{padding:.65rem .85rem;border:1px solid rgba(148,163,184,.2);border-radius:9px;color:#cbd5e1;text-decoration:none;font-size:.76rem;font-weight:700;white-space:nowrap}
+        .panel,.thread{border:1px solid rgba(148,163,184,.15);border-radius:16px;background:#0b1425}.panel{padding:1.2rem;margin-bottom:1.1rem}.panel h2{margin:0;font-size:1rem}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-top:.9rem}.field{display:flex;flex-direction:column;gap:.4rem}.field.full{grid-column:1/-1}.field label{color:#aebbd0;font-size:.72rem;font-weight:700}.input,select,textarea{width:100%;padding:.72rem .8rem;border:1px solid rgba(148,163,184,.2);border-radius:9px;background:#070f1e;color:#e5edf8;font:inherit;font-size:.8rem}.input:focus,select:focus,textarea:focus{outline:2px solid rgba(56,189,248,.45);border-color:#38bdf8}textarea{min-height:96px;resize:vertical}.button{border:1px solid rgba(56,189,248,.35);border-radius:9px;padding:.68rem .9rem;background:rgba(56,189,248,.13);color:#7dd3fc;font:700 .76rem 'Plus Jakarta Sans',sans-serif;cursor:pointer}.button:hover{background:rgba(56,189,248,.2)}#notice{min-height:1.2rem;margin-top:.7rem;color:#7dd3fc;font-size:.76rem}.section-head{display:flex;justify-content:space-between;align-items:end;margin:1.5rem 0 .7rem}.section-head h2{margin:0;font-size:1.05rem}.thread{padding:1.05rem 1.1rem;margin:.7rem 0}.thread-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.thread h3{margin:0;font-size:.95rem}.badge{display:inline-block;padding:.25rem .48rem;border-radius:999px;background:rgba(56,189,248,.1);color:#7dd3fc;font-size:.62rem;font-weight:800;text-transform:uppercase}.badge.private{background:rgba(192,132,252,.12);color:#d8b4fe}.thread-meta{margin:.35rem 0 .8rem;color:#8493aa;font-size:.66rem}.thread-message{margin:0;color:#d2ddec;font-size:.82rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.replies{margin:1rem 0 0 1rem;padding-left:.85rem;border-left:2px solid rgba(56,189,248,.22)}.reply{padding:.55rem 0}.reply-meta{margin-bottom:.25rem;color:#8ea1b9;font-size:.64rem}.reply-body{color:#cbd5e1;font-size:.77rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}.reply-form{display:grid;grid-template-columns:1fr auto;gap:.5rem;margin-top:.8rem}.reply-form textarea{min-height:45px}.empty{padding:1.2rem;border:1px dashed rgba(148,163,184,.2);border-radius:12px;color:#94a3b8;font-size:.8rem}
+        .channel-options{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}.channel-choice{display:flex;align-items:flex-start;gap:.65rem;padding:.8rem;border:1px solid rgba(148,163,184,.18);border-radius:12px;background:#080f1e;cursor:pointer}.channel-choice:has(input:checked){border-color:#38bdf8;background:rgba(14,116,144,.14);box-shadow:0 0 0 1px rgba(56,189,248,.12)}.channel-choice input{margin-top:.22rem;accent-color:#38bdf8}.channel-choice strong,.channel-choice small{display:block}.channel-choice strong{font-size:.78rem}.channel-choice small{margin-top:.2rem;color:#94a3b8;font-size:.67rem;line-height:1.45}.visibility-note{margin:.7rem 0 0;padding:.65rem .75rem;border-left:2px solid #38bdf8;background:rgba(56,189,248,.06);color:#a9bed0;font-size:.72rem;line-height:1.5}.char-count{align-self:flex-end;color:#718096;font-size:.65rem}.profile-chip{display:flex;align-items:center;gap:.55rem;padding:.5rem .7rem;border:1px solid rgba(148,163,184,.17);border-radius:11px;background:rgba(8,15,30,.8);font-size:.7rem}.profile-chip span{color:#94a3b8}.profile-chip strong{color:#dbeafe}.profile-id{font-family:monospace}
+        @media(max-width:600px){body{padding:1rem .7rem 3rem}.top{align-items:flex-start;flex-direction:column}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.reply-form{grid-template-columns:1fr}.thread-top{flex-direction:column;gap:.5rem}}
+    </style>
+</head>
+<body><main class="shell">
+    <header class="top"><div><span class="kicker">CAMPUS ESCAPE · FEEDBACK</span><h1>Share an idea or get help</h1><p class="muted">Send a private message to the admin, or post in the community so signed-in players can discuss it.</p><div class="profile-chip"><span>Signed in as</span><strong>{{ account_username }}</strong><span>· ID</span><strong class="profile-id">{{ account_player_id }}</strong></div></div><div style="display:flex;gap:.5rem;flex-wrap:wrap"><a class="link" href="/map">← Map</a>{% if is_admin %}<a class="link" href="/admin/feedback">Admin inbox</a>{% endif %}</div></header>
+
+    <section class="panel" aria-labelledby="sendHeading">
+        <h2 id="sendHeading">New message</h2>
+        <p class="muted">Choose who can read your message before sending.</p>
+        <div class="form-grid">
+            <fieldset class="field full" style="border:0;padding:0;margin:0"><legend class="field label" style="margin-bottom:.45rem">Who should see it?</legend><div class="channel-options"><label class="channel-choice"><input type="radio" name="channel" value="admin" checked><span><strong>Private · Admin only</strong><small>For account help, bugs, or something you want kept private.</small></span></label><label class="channel-choice"><input type="radio" name="channel" value="community"><span><strong>Community · Everyone</strong><small>Other signed-in players can read and reply to your post.</small></span></label></div><p id="visibilityNote" class="visibility-note">Only you and the admin can read this message.</p></fieldset>
+            <div class="field full"><label for="subject">Short title <span class="muted">(optional)</span></label><input class="input" id="subject" maxlength="100" placeholder="Optional — leave blank if you prefer"></div>
+            <div class="field full"><label for="message">Your message</label><textarea id="message" maxlength="2000" placeholder="Explain what happened or share your idea…"></textarea><span id="messageCount" class="char-count">0 / 2000</span></div>
+            <div class="field full"><button class="button" type="button" onclick="sendFeedback()">Send message</button></div>
+        </div><p id="notice" role="status" aria-live="polite"></p>
+    </section>
+
+    <div class="section-head"><div><h2>Community & your messages</h2><p class="muted">Community posts are public to signed-in players. Private messages are visible only to you and the admin.</p></div></div>
+    {% if threads %}
+        {% for thread in threads %}
+        <article class="thread">
+            <div class="thread-top"><h3>{{ thread.subject }}</h3><span class="badge {% if thread.channel == 'admin' %}private{% endif %}">{% if thread.channel == 'admin' %}Private to admin{% else %}Community{% endif %} · {{ thread.status|title }}</span></div>
+            <p class="thread-meta">{{ thread.author_id }} · {{ thread.created_at }}</p>
+            <p class="thread-message">{{ thread.message }}</p>
+            {% if thread.replies %}<div class="replies">{% for reply in thread.replies %}<div class="reply"><div class="reply-meta">{{ reply.author_id }} · {{ reply.created_at }}</div><div class="reply-body">{{ reply.message }}</div></div>{% endfor %}</div>{% endif %}
+            {% if thread.can_reply %}<div class="reply-form"><textarea id="reply-{{ thread.id }}" maxlength="1200" placeholder="Write a reply…" aria-label="Reply to {{ thread.subject }}"></textarea><button class="button" type="button" onclick="sendReply({{ thread.id }})">Reply</button></div>{% endif %}
+        </article>
+        {% endfor %}
+    {% else %}<div class="empty">No messages yet. Start a community conversation or send a private note to the admin.</div>{% endif %}
+</main>
+<script>
+    const csrfToken = {{ csrf_token|tojson }};
+    const channelRadios = document.querySelectorAll('input[name="channel"]');
+    channelRadios.forEach(radio => radio.addEventListener('change', () => {
+        document.getElementById('visibilityNote').textContent = radio.value === 'community'
+            ? 'Your post and public ID will be visible to all signed-in players. They can reply.'
+            : 'Only you and the admin can read this message.';
+    }));
+    document.getElementById('message').addEventListener('input', event => { document.getElementById('messageCount').textContent = `${event.target.value.length} / 2000`; });
+    async function postJson(url, payload) {
+        const response = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify(payload)});
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || 'Request failed.');
+        return data;
+    }
+    async function sendFeedback() {
+        const notice=document.getElementById('notice');
+        try {
+            const data=await postJson('/api/feedback',{channel:document.querySelector('input[name="channel"]:checked').value,subject:document.getElementById('subject').value,message:document.getElementById('message').value});
+            notice.textContent=data.message; window.setTimeout(()=>window.location.reload(),650);
+        } catch(error) { notice.textContent=error.message; }
+    }
+    async function sendReply(id) {
+        const notice=document.getElementById('notice');
+        try {
+            const data=await postJson(`/api/feedback/${id}/reply`,{message:document.getElementById(`reply-${id}`).value});
+            notice.textContent=data.message; window.setTimeout(()=>window.location.reload(),500);
+        } catch(error) { notice.textContent=error.message; }
+    }
+</script>
+</body></html>

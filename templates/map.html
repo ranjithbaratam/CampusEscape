@@ -4,139 +4,323 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Escape - Sector Map</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .stats-panel {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 1.25rem;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-        }
-        .stat-item label { display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; }
-        .stat-item val { font-size: 1.25rem; font-weight: 800; color: #38bdf8; }
-        
-        .section-title {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 1.5rem 0 1rem;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #030712; color: #f3f4f6; min-height: 100vh; padding-bottom: 3rem; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; padding: 1rem clamp(1rem, 3vw, 2rem); background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky; top: 0; z-index: 50;
         }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+        .brand { flex: 0 0 auto; font-weight: 800; font-size: 1.15rem; color: #38bdf8; letter-spacing: -.04em; }
+        .header-actions { display: flex; gap: .65rem; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+        .account-id-chip { display: flex; gap: .55rem; align-items: center; padding: .45rem .7rem .45rem .8rem; border-radius: 11px; border: 1px solid rgba(148,163,184,.18); background: rgba(2,6,23,.45); }
+        .account-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; font-size: .72rem; font-weight: 700; }
+        .account-id-label { color: #94a3b8; font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .account-id-value { color: #e2e8f0; font: 700 .78rem 'Fira Code', monospace; }
+        .copy-id { border: 0; border-radius: 7px; padding: .35rem .5rem; color: #7dd3fc; background: rgba(56,189,248,.12); font-weight: 700; font-size: .7rem; cursor: pointer; }
+        .copy-id:hover { background: rgba(56,189,248,.2); }
+        .header-link { text-decoration: none; padding: .58rem .82rem; border-radius: 10px; font-weight: 800; font-size: .74rem; letter-spacing: .02em; white-space: nowrap; }
+        .dashboard-link { color: #38bdf8; border: 1px solid rgba(56,189,248,.3); background: rgba(56,189,248,.1); }
+        .logout-link { color: #f87171; border: 1px solid rgba(239,68,68,.25); background: rgba(239,68,68,.08); }
+        .copy-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+        .certificate-checklist { margin: 0 0 2rem; padding: 1.15rem 1.3rem; border: 1px solid rgba(148,163,184,.15); border-radius: 18px; background: rgba(15,23,42,.72); }
+        .checklist-heading { display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.8rem; }
+        .checklist-heading h2 { font-size:.94rem; }
+        .checklist-heading p { color:#94a3b8; font-size:.72rem; }
+        .checklist-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.65rem; }
+        .requirement { padding:.75rem .8rem; border:1px solid rgba(148,163,184,.12); border-radius:11px; background:rgba(2,6,23,.35); }
+        .requirement.done { border-color:rgba(52,211,153,.3); background:rgba(6,78,59,.13); }
+        .requirement span { display:block; color:#94a3b8; font-size:.62rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+        .requirement strong { display:block; margin-top:.32rem; color:#e2e8f0; font-size:.78rem; }
+        .requirement.done strong { color:#6ee7b7; }
+        @media(max-width:760px) { .checklist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media(max-width:440px) { .checklist-grid { grid-template-columns:1fr; } }
+
+        .map-container { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        /* SIDE-BY-SIDE GRID LAYOUT */
+        .grid-3-col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .grid-2-col {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
         .card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 1.5rem;
+            padding: 1.75rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+            transition: all 0.25s ease;
         }
-        .card:hover:not(.locked) { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 15px 30px -10px rgba(56, 189, 248, 0.2); }
-        .card.locked { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.8); }
-        
-        .badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; width: fit-content; }
-        .b-py { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
-        .b-c { background: rgba(192, 132, 252, 0.2); color: #c084fc; }
-        .b-log { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
-        .b-vault { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
-        .b-debug { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        
-        .card h3 { font-size: 1.2rem; margin-bottom: 0.4rem; }
-        .card p { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; margin-bottom: 1.25rem; }
-        .btn-act { font-size: 0.85rem; font-weight: 700; color: #38bdf8; }
-        .btn-logout { color: #f87171; text-decoration: none; font-size: 0.85rem; font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.4rem 0.85rem; border-radius: 8px; }
+        .card.disabled { opacity: 0.45; filter: grayscale(0.8); }
+        .card:not(.disabled):hover { border-color: #38bdf8; transform: translateY(-4px); }
+
+        .btn-action {
+            display: block; width: 100%; text-align: center; padding: 0.8rem;
+            border-radius: 12px; font-weight: 700; text-decoration: none; margin-top: 1.25rem;
+            transition: all 0.2s; font-size: 0.9rem;
+        }
+        .btn-active { background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; }
+        .btn-active:hover { background: linear-gradient(135deg, #0369a1, #1d4ed8); }
+        .btn-cert { background: linear-gradient(135deg, #059669, #10b981); color: #fff; box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        .btn-cert:hover { background: linear-gradient(135deg, #047857, #059669); }
+        .btn-disabled { background: rgba(255,255,255,0.08); color: #64748b; cursor: not-allowed; }
+
+        @media (max-width: 900px) {
+            .grid-3-col, .grid-2-col { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 760px) {
+            header { align-items: flex-start; flex-direction: column; padding-block: .85rem; }
+            .header-actions { width: 100%; justify-content: flex-start; }
+            .account-id-chip { flex: 1 1 auto; min-width: 220px; justify-content: space-between; }
+        }
+
+        /* Sector map: a calm, field-guide look that scales from desktop to phone. */
+        .sector-map-page { background-color:#07101b; background-image:radial-gradient(ellipse at 12% 8%,rgba(14,165,233,.13),transparent 35%),radial-gradient(ellipse at 92% 42%,rgba(99,102,241,.10),transparent 38%); }
+        .sector-map-page header { padding-inline:clamp(1rem,4vw,3.5rem); background:rgba(7,16,27,.9); border-color:rgba(148,183,203,.13); }
+        .sector-map-page .brand { color:#7dd3fc; letter-spacing:.015em; }
+        .map-container { width:min(1180px,100%); margin:0 auto; padding:clamp(.75rem,3vw,2rem) clamp(1rem,4vw,2.5rem) 4rem; }
+        .sector-map-page .welcome-panel { position:relative; overflow:hidden; min-height:0; margin:1rem 0 2.1rem; padding:clamp(1.35rem,4vw,2.5rem); border:1px solid rgba(125,211,252,.2); border-radius:28px; background:linear-gradient(115deg,rgba(11,43,58,.96),rgba(16,31,55,.92) 60%,rgba(39,39,76,.88)); }
+        .sector-map-page .welcome-panel::after { content:""; position:absolute; width:250px; height:250px; right:8%; top:-110px; border:1px solid rgba(125,211,252,.12); border-radius:50%; box-shadow:0 0 0 30px rgba(125,211,252,.025),0 0 0 60px rgba(125,211,252,.02); pointer-events:none; }
+        .sector-map-page .welcome-panel > div:first-child { position:relative; z-index:1; }
+        .sector-map-page .welcome-panel .eyebrow { color:#79dcde; font-size:.68rem; letter-spacing:.15em; }
+        .hero-divider { padding:0 .35rem; color:#52748a; }
+        .sector-map-page .welcome-panel h1 { max-width:650px; margin:.8rem 0 .6rem; font-size:clamp(1.8rem,4.4vw,3rem); line-height:1.08; letter-spacing:-.055em; }
+        .sector-map-page .welcome-panel p { max-width:560px; font-size:clamp(.9rem,1.4vw,1.02rem); }
+        .hero-tags { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.2rem; }
+        .hero-tags span { padding:.4rem .65rem; color:#c8d9e5; border:1px solid rgba(148,183,203,.17); border-radius:99px; background:rgba(2,12,24,.3); font-size:.68rem; font-weight:700; }
+        .sector-map-page .welcome-progress { position:relative; z-index:1; min-width:145px; }
+        .sector-map-page .progress-ring-label { width:96px; height:96px; border:0; background:conic-gradient(#5eead4 {{ progress_percent }}%,rgba(148,163,184,.13) 0); box-shadow:0 0 0 1px rgba(94,234,212,.28),0 0 32px rgba(45,212,191,.13); position:relative; isolation:isolate; }
+        .sector-map-page .progress-ring-label::before { content:""; position:absolute; inset:6px; z-index:-1; border-radius:50%; background:#102b3b; }
+        .sector-map-page .welcome-progress > span { font-size:.62rem; letter-spacing:.12em; color:#9db8c8; }
+        .map-stats { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; margin-bottom:2.2rem; }
+        .map-stat { display:grid; grid-template-columns:1fr auto; align-items:center; column-gap:1rem; padding:1rem 1.25rem; border:1px solid rgba(148,183,203,.13); border-radius:18px; background:linear-gradient(135deg,rgba(15,32,49,.93),rgba(10,20,34,.9)); }
+        .map-stat > span { color:#9bb0c1; font-size:.67rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+        .map-stat > strong { grid-column:2; grid-row:1 / span 2; color:#67e8d2; font-size:1.6rem; letter-spacing:-.04em; }
+        .map-stat > strong small { font-size:.9rem; }
+        .map-stat > em { margin-top:.25rem; color:#72899a; font-size:.7rem; font-style:normal; }
+        .map-stat-path > strong { color:#c4b5fd; font-size:1.25rem; }
+        .map-stat-path i { color:#64748b; font-style:normal; }
+        .section-heading { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin:0 0 .9rem; }
+        .section-heading > div > span { color:#5eead4; font-size:.62rem; font-weight:800; letter-spacing:.16em; }
+        .section-heading h2 { margin-top:.25rem; color:#f1f5f9; font-size:1.2rem; letter-spacing:-.03em; }
+        .section-heading > p { color:#8195a5; font-size:.73rem; text-align:right; }
+        .sector-map-page .grid-3-col { grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin:0 0 2.5rem; }
+        .sector-map-page .card { position:relative; min-width:0; min-height:260px; padding:1.3rem; overflow:hidden; border-color:rgba(148,183,203,.14); border-radius:20px; background:linear-gradient(150deg,rgba(16,31,47,.98),rgba(9,18,31,.98)); box-shadow:0 12px 30px rgba(0,0,0,.18); }
+        .sector-map-page .card::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:linear-gradient(#5eead4,rgba(94,234,212,0)); opacity:.75; }
+        .sector-map-page .card:nth-child(2)::before { background:linear-gradient(#60a5fa,rgba(96,165,250,0)); }
+        .sector-map-page .card:nth-child(3)::before { background:linear-gradient(#a78bfa,rgba(167,139,250,0)); }
+        .sector-map-page .card:not(.disabled):hover { transform:translateY(-3px); border-color:rgba(94,234,212,.38); box-shadow:0 18px 38px rgba(0,0,0,.27); }
+        .sector-map-page .card.disabled { opacity:.62; filter:saturate(.65); }
+        .sector-map-page .card h2 { color:#e6f0f6; font-size:1.22rem!important; letter-spacing:-.035em; }
+        .sector-map-page .card p { max-width:34ch; min-height:2.6em; color:#9aabba!important; font-size:.8rem!important; }
+        .sector-map-page .card > div > span:first-child { display:inline-block; margin-bottom:.25rem; font-size:.62rem!important; letter-spacing:.12em; }
+        .sector-map-page .mission-meta { align-items:center; margin-top:1.2rem; font-size:.6rem; }
+        .sector-map-page .mission-meta strong { white-space:nowrap; color:#72d9ca; }
+        .sector-map-page .btn-action { min-height:44px; display:grid; place-items:center; margin-top:1.1rem; padding:.7rem; border-radius:11px; font-size:.75rem; letter-spacing:.035em; }
+        .sector-map-page .btn-active { background:linear-gradient(120deg,#0e7490,#2563eb); }
+        .sector-map-page .certificate-checklist { margin:0 0 2.1rem; padding:1.15rem; border-color:rgba(148,183,203,.14); border-radius:18px; background:rgba(12,25,40,.75); }
+        .sector-map-page .checklist-heading { align-items:flex-start; }
+        .sector-map-page .checklist-heading h2 { color:#e4edf3; font-size:.95rem; }
+        .sector-map-page .checklist-heading p { text-align:right; line-height:1.5; }
+        .sector-map-page .requirement { border-color:rgba(148,183,203,.13); background:rgba(5,15,26,.46); }
+        .sector-map-page .requirement strong { font-size:.73rem; }
+        .sector-map-page .header-link { min-height:38px; display:inline-flex; align-items:center; justify-content:center; }
+        .sector-map-page a:focus-visible,.sector-map-page button:focus-visible { outline:3px solid #5eead4; outline-offset:3px; }
+        @media(max-width:900px) { .sector-map-page .grid-3-col { grid-template-columns:repeat(2,minmax(0,1fr)); } .sector-map-page .grid-3-col .card:last-child:nth-child(odd) { grid-column:1/-1; } }
+        @media(max-width:640px) {
+            .sector-map-page header { gap:.65rem; }
+            .sector-map-page .brand { font-size:1.05rem; }
+            .sector-map-page .header-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+            .sector-map-page .account-id-chip { min-width:0; grid-column:1/-1; }
+            .sector-map-page .header-link { width:100%; padding:.55rem .45rem; font-size:.67rem; }
+            .map-container { padding-inline:1rem; }
+            .sector-map-page .welcome-panel { min-height:0; align-items:flex-start; gap:1rem; margin:.5rem 0 1rem; padding:1.35rem 1.15rem; border-radius:21px; }
+            .sector-map-page .welcome-panel::after { width:150px; height:150px; right:-55px; top:-55px; }
+            .sector-map-page .welcome-panel h1 { font-size:1.8rem; }
+            .sector-map-page .welcome-panel p { font-size:.84rem; }
+            .hero-tags { gap:.35rem; margin-top:.9rem; }
+            .hero-tags span { font-size:.59rem; padding:.34rem .5rem; }
+            .sector-map-page .welcome-progress { min-width:58px; }
+            .sector-map-page .progress-ring-label { width:60px; height:60px; font-size:1rem; }
+            .sector-map-page .progress-ring-label::before { inset:4px; }
+            .sector-map-page .welcome-progress > span { max-width:70px; text-align:center; font-size:.5rem; }
+            .map-stats { grid-template-columns:1fr; gap:.55rem; margin-bottom:1.7rem; }
+            .map-stat { padding:.8rem .95rem; }
+            .map-stat > strong { font-size:1.35rem; }
+            .map-stat-path > strong { font-size:1.1rem; }
+            .section-heading { align-items:flex-start; flex-direction:column; gap:.3rem; }
+            .section-heading > p { text-align:left; }
+            .sector-map-page .grid-3-col { grid-template-columns:1fr; gap:.75rem; margin-bottom:1.8rem; }
+            .sector-map-page .grid-3-col .card:last-child:nth-child(odd) { grid-column:auto; }
+            .sector-map-page .card { min-height:0; padding:1.1rem; }
+            .sector-map-page .card p { min-height:0; }
+            .sector-map-page .checklist-heading { flex-direction:column; gap:.35rem; }
+            .sector-map-page .checklist-heading p { text-align:left; }
+            .sector-map-page .checklist-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .sector-map-page .requirement { padding:.65rem; }
+            .sector-map-page .requirement strong { font-size:.67rem; }
+        }
+        @media(max-width:360px) { .sector-map-page .welcome-panel { flex-direction:column; } .sector-map-page .welcome-progress { display:flex; align-items:center; } .sector-map-page .checklist-grid { grid-template-columns:1fr; } }
     </style>
 </head>
-<body>
+<body class="sector-map-page">
     <header>
-        <div class="brand-title">Campus Escape</div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <span style="font-size: 0.85rem; color: #cbd5e1;">Agent: <strong>{{ username }}</strong></span>
-            <a href="/logout" class="btn-logout">Logout</a>
-        </div>
+        <div class="brand">CAMPUS ESCAPE</div>
+        <nav class="header-actions" aria-label="Account navigation">
+            <div class="account-id-chip" title="Signed in as {{ username }} · Your unique account ID">
+                <strong class="account-name" title="{{ username }}">{{ username }}</strong>
+                <span class="account-id-label">Your ID</span>
+                <strong class="account-id-value">{{ player_id }}</strong>
+                <button class="copy-id" type="button" onclick="copyAccountId(this)" aria-label="Copy account ID">Copy</button>
+            </div>
+            <span id="copyStatus" class="copy-status" role="status" aria-live="polite"></span>
+            {% if is_admin %}<a class="header-link dashboard-link" href="/admin">Admin tools</a>{% endif %}
+            <a class="header-link dashboard-link" href="/feedback">Feedback</a>
+            <a class="header-link dashboard-link" href="/dashboard">Dashboard</a>
+            <a class="header-link logout-link" href="/logout">Log out</a>
+        </nav>
     </header>
 
-    <main>
-        <div class="stats-panel">
-            <div class="stat-item"><label>Overall Accuracy</label><val>{{ accuracy }}%</val></div>
-            <div class="stat-item"><label>Required Accuracy</label><val style="color: #4ade80;">60.0%</val></div>
+    <main class="map-container">
+        <section class="welcome-panel">
+            <div>
+                <span class="eyebrow">CAMPUS ESCAPE <span class="hero-divider">/</span> MISSION CONTROL</span>
+                <h1>Your campus escape starts here.</h1>
+                <p>Clear three learning sectors, sharpen your debugging skills, then crack the final vault.</p>
+                <div class="hero-tags"><span>3 learning sectors</span><span>Final vault</span></div>
+            </div>
+        </section>
+
+        <div class="section-heading"><div><span>YOUR ROUTE</span><h2>Core sector missions</h2></div><p>Complete them in order to unlock the final vault.</p></div>
+
+        <!-- SIDE-BY-SIDE 3-COLUMN LAYOUT -->
+        <div class="grid-3-col">
+            <!-- PYTHON LAB -->
+            <div class="card">
+                <div>
+                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 01</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Python Lab</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Syntax, variables, arithmetic, and basic string operations.</p>
+                    <div class="mission-meta"><span>BEST SCORE <b>{{ py_s }}/1000</b></span><strong>{{ 'CLEARED' if python_completed else 'IN PROGRESS' }}</strong></div>
+                    <div class="mission-track"><span style="width: {{ [py_s / 10, 100]|min }}%"></span></div>
+                </div>
+                <a href="/game" class="btn-action btn-active">LAUNCH MISSION →</a>
+            </div>
+
+            <!-- C LAB -->
+            <div class="card {% if not unlock_c %}disabled{% endif %}">
+                <div>
+                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 02</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">C Programming</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Data types, format specifiers, operators, and loop controls.</p>
+                    <div class="mission-meta"><span>BEST SCORE <b>{{ c_s }}/1000</b></span><strong>{{ 'CLEARED' if c_completed else 'LOCKED' if not unlock_c else 'IN PROGRESS' }}</strong></div>
+                    <div class="mission-track"><span style="width: {{ [c_s / 10, 100]|min }}%"></span></div>
+                </div>
+                {% if unlock_c %}
+                    <a href="/c" class="btn-action btn-active">LAUNCH MISSION →</a>
+                {% else %}
+                    <span class="btn-action btn-disabled">🔒 REQUIRES PYTHON LAB</span>
+                {% endif %}
+            </div>
+
+            <!-- LOGIC LAB -->
+            <div class="card {% if not unlock_logic %}disabled{% endif %}">
+                <div>
+                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 03</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Logic Lab</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Pattern sequences, analytical puzzles, and mathematical reasoning.</p>
+                    <div class="mission-meta"><span>BEST SCORE <b>{{ log_s }}/1000</b></span><strong>{{ 'CLEARED' if logic_completed else 'LOCKED' if not unlock_logic else 'IN PROGRESS' }}</strong></div>
+                    <div class="mission-track"><span style="width: {{ [log_s / 10, 100]|min }}%"></span></div>
+                </div>
+                {% if unlock_logic %}
+                    <a href="/logic" class="btn-action btn-active">LAUNCH MISSION →</a>
+                {% else %}
+                    <span class="btn-action btn-disabled">🔒 REQUIRES C LAB</span>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="section-title">Main Core Missions</div>
-        <div class="grid">
-            <!-- Sector 01: Python -->
-            <a href="/game" class="card">
-                <div>
-                    <span class="badge b-py">Sector 01</span>
-                    <h3>Python Lab</h3>
-                    <p>Debug syntax issues and basic operations.</p>
-                </div>
-                <div class="btn-act">LAUNCH →</div>
-            </a>
+        <div class="section-heading extra-heading"><div><span>EXTRA TOOLS</span><h2>Practice &amp; achievements</h2></div><p>Build confidence, then track your completion.</p></div>
 
-            <!-- Sector 02: C Programming -->
-            <a href="{{ '/c' if unlock_c else '#' }}" class="card {{ '' if unlock_c else 'locked' }}">
+        <!-- PRACTICE, VAULT, AND CERTIFICATE -->
+        <div class="grid-3-col">
+            <!-- DEBUG LAB -->
+            <div class="card">
                 <div>
-                    <span class="badge b-c">Sector 02</span>
-                    <h3>C Programming</h3>
-                    <p>Pointers, formats, and loop execution checks.</p>
+                    <span style="font-size: 0.75rem; color: #c084fc; font-weight: 700;">PRACTICE TERMINAL</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Debugging Lab</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Practice Python and C debugging with saved drafts, progressive hints, answer walkthroughs, and a safe runner.</p>
                 </div>
-                <div class="btn-act">{{ 'LAUNCH →' if unlock_c else '🔒 CLEAR PYTHON FIRST' }}</div>
-            </a>
+                <a href="/debug" class="btn-action" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;">ENTER DEBUG LAB →</a>
+            </div>
 
-            <!-- Sector 03: Logic -->
-            <a href="{{ '/logic' if unlock_logic else '#' }}" class="card {{ '' if unlock_logic else 'locked' }}">
+            <!-- CERTIFICATE CARD -->
+            <div class="card {% if not all_completed %}disabled{% endif %}">
                 <div>
-                    <span class="badge b-log">Sector 03</span>
-                    <h3>Logic Lab</h3>
-                    <p>Boolean algebra, sequences, and deduction.</p>
+                    <span style="font-size: 0.75rem; color: #fbbf24; font-weight: 700;">FINAL MISSION</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Master Cipher Vault</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Combine the clues from all three sectors to finish your escape.</p>
                 </div>
-                <div class="btn-act">{{ 'LAUNCH →' if unlock_logic else '🔒 CLEAR C FIRST' }}</div>
-            </a>
-        </div>
-
-        <div class="section-title">Special & Practice Terminals</div>
-        <div class="grid">
-            <!-- Practice Mode: Untimed Debugging Lab -->
-            <a href="/debug" class="card">
-                <div>
-                    <span class="badge b-debug">Practice Terminal</span>
-                    <h3>Debugging Lab</h3>
-                    <p>Untimed code execution & error fixing in Python or C.</p>
-                </div>
-                <div class="btn-act" style="color: #10b981;">PRACTICE NOW →</div>
-            </a>
-
-            <!-- Final Sector: Password Room -->
-            <a href="{{ '/lock' if unlock_vault else '#' }}" class="card {{ '' if unlock_vault else 'locked' }}">
-                <div>
-                    <span class="badge b-vault">Final Vault</span>
-                    <h3>Password Room</h3>
-                    <p>Requires clearing Python, C, AND Logic with >= 60% accuracy.</p>
-                </div>
-                <div class="btn-act">
-                    {% if unlock_vault %}
-                        ENTER VAULT →
-                    {% elif not all_completed %}
-                        🔒 COMPLETE ALL 3 SECTORS FIRST
+                {% if all_completed %}
+                    {% if vault_cleared %}
+                        <a href="/certificate" class="btn-action btn-cert">✓ VIEW CERTIFICATE →</a>
                     {% else %}
-                        🔒 REQUIRES 60% ACCURACY
+                        <a href="/lock" class="btn-action" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;">🔐 ENTER THE VAULT →</a>
                     {% endif %}
+                {% else %}
+                    <span class="btn-action btn-disabled">🔒 LOCKED (COMPLETE ALL 3 LABS)</span>
+                {% endif %}
+            </div>
+
+            <div class="card {% if not vault_cleared and not is_admin %}disabled{% endif %}">
+                <div>
+                    <span style="font-size: 0.75rem; color: #34d399; font-weight: 700;">FINAL ACHIEVEMENT</span>
+                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Official Certificate</h2>
+                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Your verified record of completing Campus Escape.</p>
                 </div>
-            </a>
+                {% if is_admin %}
+                    <a href="/certificate" class="btn-action btn-cert">👁 PREVIEW CERTIFICATE →</a>
+                {% elif vault_cleared %}
+                    <a href="/certificate" class="btn-action btn-cert">🎓 CLAIM CERTIFICATE →</a>
+                {% else %}
+                    <span class="btn-action btn-disabled">🔒 CLEAR THE VAULT FIRST</span>
+                {% endif %}
+            </div>
         </div>
     </main>
-    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script>
+        async function copyAccountId(button) {
+            const accountId = {{ player_id|tojson }};
+            try {
+                await navigator.clipboard.writeText(accountId);
+                button.textContent = "Copied";
+                document.getElementById("copyStatus").textContent = "Account ID copied";
+            } catch (error) {
+                button.textContent = accountId;
+                document.getElementById("copyStatus").textContent = "Account ID: " + accountId;
+            }
+            window.setTimeout(() => { button.textContent = "Copy"; }, 1600);
+        }
+    </script>
 </body>
 </html>

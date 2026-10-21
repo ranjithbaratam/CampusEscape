@@ -7,9 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        body { 
-            align-items: center; 
-            justify-content: center; 
+        body {
+            align-items: center;
+            justify-content: center;
             min-height: 100vh;
         }
         .vault-card {
@@ -18,66 +18,73 @@
             border: 1px solid rgba(244, 63, 94, 0.35);
             border-radius: 24px;
             padding: 2.5rem;
-            max-width: 500px;
+            max-width: 640px;
             width: 90%;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(244, 63, 94, 0.25);
         }
-        .badge-vault { 
-            background: rgba(244, 63, 94, 0.15); 
-            color: #f43f5e; 
+        .badge-vault {
+            background: rgba(244, 63, 94, 0.15);
+            color: #f43f5e;
             border: 1px solid rgba(244, 63, 94, 0.3);
-            padding: 0.3rem 0.85rem; 
-            border-radius: 20px; 
-            font-size: 0.75rem; 
-            font-weight: 800; 
-            text-transform: uppercase; 
+            padding: 0.3rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
             letter-spacing: 1px;
         }
         h2 { margin: 1.25rem 0 0.5rem; font-size: 1.8rem; font-weight: 800; color: #fff; }
         p { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; line-height: 1.5; }
-        .puzzle-box { 
-            background: #020617; 
-            border: 1px solid rgba(255, 255, 255, 0.1); 
-            border-radius: 14px; 
-            padding: 1.25rem; 
-            font-family: 'Fira Code', monospace; 
-            color: #f43f5e; 
-            font-size: 0.9rem; 
-            text-align: left; 
-            margin-bottom: 1.5rem; 
-            line-height: 1.6; 
-        }
-        input.key-input { 
-            width: 100%; 
-            padding: 0.9rem; 
-            border-radius: 12px; 
-            border: 2px solid rgba(255, 255, 255, 0.12); 
-            background: rgba(2, 6, 23, 0.8); 
-            color: #38bdf8; 
+        .puzzle-box {
+            background: #020617;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1.25rem;
             font-family: 'Fira Code', monospace;
-            font-size: 1.2rem; 
+            color: #f43f5e;
+            font-size: 0.95rem;
+            text-align: left;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .clue-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin: 1rem 0 1.25rem; }
+        .clue { background: rgba(15, 23, 42, .75); border: 1px solid rgba(148,163,184,.18); border-radius: 12px; padding: .9rem; text-align: left; }
+        .clue-label { color: #94a3b8; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .clue-value { color: #f8fafc; font: 700 .9rem 'Fira Code', monospace; margin-top: .45rem; }
+        .clue-result { color: #38bdf8; font-size: .8rem; margin-top: .35rem; }
+        .key-help { margin: -.65rem 0 1rem; color: #94a3b8; font-size: .75rem; }
+        @media (max-width: 560px) { .vault-card { padding: 1.4rem; } .clue-grid { grid-template-columns: 1fr; } }
+        input.key-input {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: rgba(2, 6, 23, 0.8);
+            color: #38bdf8;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.2rem;
             font-weight: 700;
-            text-align: center; 
-            margin-bottom: 1.25rem; 
-            outline: none; 
-            letter-spacing: 3px; 
+            text-align: center;
+            margin-bottom: 1.25rem;
+            outline: none;
+            letter-spacing: 3px;
             transition: all 0.2s;
         }
         input.key-input:focus {
             border-color: #f43f5e;
             box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.15);
         }
-        .btn-unlock { 
-            width: 100%; 
-            padding: 0.95rem; 
-            border: none; 
-            border-radius: 12px; 
-            background: linear-gradient(135deg, #f43f5e, #e11d48); 
-            color: white; 
-            font-weight: 800; 
+        .btn-unlock {
+            width: 100%;
+            padding: 0.95rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: white;
+            font-weight: 800;
             font-size: 0.95rem;
-            cursor: pointer; 
+            cursor: pointer;
             box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4);
             transition: all 0.2s;
         }
@@ -132,18 +139,23 @@
     <div class="vault-card">
         <span class="badge-vault">FINAL ESCAPE VAULT</span>
         <h2>Master Terminal</h2>
-        <p>No timer active. Solve the master sequence cipher using variables calculated across Python, C, and Logic.</p>
+        <p>Use the three sector clues to find A, B and C. Then calculate the final key and enter the number below.</p>
 
+        <div class="clue-grid" aria-label="Vault clues">
+            <div class="clue"><div class="clue-label">Python · A</div><div class="clue-value">len("ESCAPE") + 1</div><div class="clue-result">Find the string length, then add 1.</div></div>
+            <div class="clue"><div class="clue-label">C · B</div><div class="clue-value">29 % 5</div><div class="clue-result">% gives the remainder.</div></div>
+            <div class="clue"><div class="clue-label">Logic · C</div><div class="clue-value">5, 10, 20, 40, ?</div><div class="clue-result">Find the next value.</div></div>
+        </div>
         <div class="puzzle-box">
-            <span style="color: #94a3b8;">// MASTER SEQUENCE CIPHER</span><br>
-            Python: len("ESCAPE") = A <span style="color: #94a3b8;">// A = 6</span><br>
-            C: (5 % 3) = B <span style="color: #94a3b8;">// B = 2</span><br>
-            Logic: 2, 4, 8, 16, [C] <span style="color: #94a3b8;">// C = 32</span><br><br>
-            <strong style="color: #38bdf8;">MASTER KEY = (A * B) + C</strong>
+            <span style="color: #94a3b8;">FINAL STEP</span><br>
+            <strong style="color: #38bdf8;">MASTER KEY = (A × C) − B</strong><br>
+            <span style="color: #94a3b8; font-size: .78rem;">Calculate each clue first, then apply the formula.</span>
         </div>
 
         <form id="vaultForm" onsubmit="verifyKey(event)">
-            <input type="text" id="keyInput" class="key-input" placeholder="ENTER KEY" required autocomplete="off">
+            <label for="keyInput" style="display:block;text-align:left;color:#cbd5e1;font-size:.8rem;font-weight:700;margin-bottom:.45rem;">Your numeric vault key</label>
+            <input type="text" id="keyInput" class="key-input" placeholder="ENTER KEY" inputmode="numeric" pattern="[0-9]*" maxlength="6" aria-describedby="keyHelp" required autocomplete="off">
+            <div class="key-help" id="keyHelp">Tip: check your multiplication before subtracting.</div>
             <button type="submit" class="btn-unlock">UNLOCK & ESCAPE CAMPUS</button>
         </form>
 
