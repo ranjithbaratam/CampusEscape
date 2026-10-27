@@ -19,25 +19,25 @@
         .certificate::after { right: -125px; bottom: -155px; box-shadow: 0 0 0 18px rgba(36,90,132,.035), 0 0 0 38px rgba(36,90,132,.03); }
         .brand { display: flex; align-items: center; justify-content: center; gap: .65rem; color: var(--navy); font-weight: 800; letter-spacing: .16em; font-size: .77rem; }
         .brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold); font-size: 1rem; }
-        .eyebrow { margin-top: 1.35rem; color: var(--gold); font-size: .68rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+        .eyebrow { margin-top: 1.1rem; color: var(--gold); font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
         h1 { margin: .4rem 0 .35rem; color: var(--navy); font: 700 clamp(2rem, 5vw, 3.4rem)/1.1 'Playfair Display', Georgia, serif; }
-        .subtitle { color: var(--muted); font-size: .9rem; letter-spacing: .06em; }
-        .divider { display: flex; align-items: center; gap: .8rem; width: min(420px, 82%); margin: 1.5rem auto; color: var(--gold); }
+        .subtitle { color: var(--muted); font-size: .95rem; letter-spacing: .06em; }
+        .divider { display: flex; align-items: center; gap: .8rem; width: min(420px, 82%); margin: 1.15rem auto; color: var(--gold); }
         .divider::before, .divider::after { height: 1px; flex: 1; background: #dfd2b3; content: ''; }
-        .presented { color: var(--muted); font-size: .82rem; }
+        .presented { color: var(--muted); font-size: .92rem; }
         .recipient { margin: .5rem 0 .7rem; color: var(--navy); font: 700 clamp(1.8rem, 5vw, 2.8rem)/1.2 'Playfair Display', Georgia, serif; overflow-wrap: anywhere; }
-        .statement { width: min(720px, 100%); margin: 0 auto; color: #46576a; font-size: .95rem; line-height: 1.75; }
+        .statement { width: min(720px, 100%); margin: 0 auto; color: #46576a; font-size: 1rem; line-height: 1.65; }
         .statement strong { color: var(--navy); }
-        .results { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .65rem; margin: 1.7rem auto 1.5rem; }
-        .result { padding: .85rem .4rem; border: 1px solid #e7e0d2; background: rgba(249,247,241,.72); }
-        .result strong { display: block; color: var(--navy); font-size: 1.15rem; }
-        .result span { display: block; margin-top: .25rem; color: var(--muted); font-size: .61rem; font-weight: 800; letter-spacing: .1em; }
-        .completion-line { display: inline-flex; align-items: center; gap: .4rem; margin: .1rem auto 1.2rem; padding: .45rem .8rem; border: 1px solid #b9d8c7; border-radius: 999px; color: #17603c; background: #f0f8f3; font-size: .72rem; font-weight: 800; letter-spacing: .05em; }
+        .results { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: .65rem; margin: 1.35rem auto 1.1rem; }
+        .result { padding: .8rem .45rem; border: 1px solid #e7e0d2; background: rgba(249,247,241,.72); }
+        .result strong { display: block; color: var(--navy); font-size: 1.2rem; }
+        .result span { display: block; margin-top: .3rem; color: #526176; font-size: .72rem; font-weight: 800; letter-spacing: .07em; line-height:1.35; }
+        .completion-line { display: inline-flex; align-items: center; gap: .4rem; margin: .1rem auto .8rem; padding: .5rem .85rem; border: 1px solid #b9d8c7; border-radius: 999px; color: #17603c; background: #f0f8f3; font-size: .78rem; font-weight: 800; letter-spacing: .05em; }
         .admin-preview { max-width: 720px; margin: 1rem auto 0; padding: .7rem 1rem; border: 1px solid #dc2626; background: #fff1f2; color: #991b1b; font-size: .76rem; font-weight: 800; letter-spacing: .07em; }
-        .certificate-footer { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-top: 1rem; padding-top: 1.1rem; border-top: 1px solid #e5e7eb; text-align: left; }
-        .footer-block { color: var(--muted); font-size: .65rem; line-height: 1.6; letter-spacing: .04em; text-transform: uppercase; }
-        .footer-block strong { display: block; color: var(--navy); font-size: .8rem; letter-spacing: 0; text-transform: none; }
-        .seal { display: grid; place-items: center; width: 72px; height: 72px; flex: 0 0 auto; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold); font-size: .53rem; font-weight: 800; line-height: 1.35; text-align: center; letter-spacing: .08em; }
+        .certificate-footer { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-top: .8rem; padding-top: .8rem; border-top: 1px solid #e5e7eb; text-align: left; }
+        .footer-block { color: #526176; font-size: .75rem; line-height: 1.5; letter-spacing: .04em; text-transform: uppercase; }
+        .footer-block strong { display: block; color: var(--navy); font-size: .9rem; letter-spacing: 0; text-transform: none; overflow-wrap:anywhere; }
+        .seal { display: grid; place-items: center; width: 72px; height: 72px; flex: 0 0 auto; border: 1px solid var(--gold); border-radius: 50%; color: #8a6524; font-size: .62rem; font-weight: 800; line-height: 1.35; text-align: center; letter-spacing: .08em; }
         @media (max-width: 620px) {
             body { padding: 1rem .5rem; }
             .results { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -45,23 +45,40 @@
             .seal { width: 60px; height: 60px; order: 3; }
             .certificate-tools { flex-wrap: wrap; }
         }
-        @page { size: landscape; margin: 10mm; }
+        @page { size: A4 landscape; margin: 8mm; }
         @media print {
-            body { min-height: 0; padding: 0; background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            html, body { width:100%; height:194mm; min-height:0; margin:0; padding:0; overflow:hidden; background:#fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .certificate-tools { display: none; }
-            .certificate { width: 100%; max-width: none; min-height: 180mm; padding: 18mm 22mm 14mm; border: 1px solid #b68a3a; outline-offset: -8px; box-shadow: none; break-inside: avoid; }
-            h1 { font-size: 34pt; }
-            .recipient { font-size: 27pt; }
-            .statement { font-size: 10pt; }
-            .results { margin: 12mm auto 9mm; }
+            .certificate { display:flex; flex-direction:column; justify-content:center; width:100%; height:194mm; max-width:none; min-height:0; margin:0; padding:9mm 16mm; border:1px solid #b68a3a; outline-offset:-7px; box-shadow:none; break-inside:avoid; page-break-inside:avoid; page-break-after:avoid; overflow:hidden; }
+            .brand { font-size:10pt; }
+            .brand-mark { width:28px;height:28px; }
+            .eyebrow { margin-top:5mm;font-size:9pt; }
+            h1 { font-size:30pt; }
+            .subtitle { font-size:10pt; }
+            .divider { margin:6mm auto; }
+            .presented { font-size:10pt; }
+            .recipient { margin:2mm 0 3mm;font-size:24pt; }
+            .statement { font-size:10pt;line-height:1.5; }
+            .results { margin:7mm auto 5mm;gap:3mm; }
+            .result { padding:4mm 2mm; }
+            .result strong { font-size:15pt; }
+            .result span { font-size:8pt; }
+            .completion-line { margin-bottom:2mm;font-size:9pt; }
+            .certificate-footer { margin-top:5mm;padding-top:4mm; }
+            .footer-block { font-size:8pt; }
+            .footer-block strong { font-size:10pt; }
+            .seal { width:18mm;height:18mm;font-size:7pt; }
+            .admin-preview { margin:3mm auto;padding:2mm 4mm;font-size:8pt; }
         }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="certificate-page">{% include "_global_nav.html" %}
     <nav class="certificate-tools" aria-label="Certificate actions">
         <a href="/map">← Back to map</a>
         <a href="/dashboard">View dashboard</a>
         <button class="primary" type="button" onclick="window.print()">Print / Save as PDF</button>
+        {% if not admin_preview %}<button type="button" onclick="downloadStory()">Download 9:16 story</button><button type="button" onclick="shareAchievement('whatsapp')">WhatsApp</button><button type="button" onclick="shareAchievement('linkedin')">LinkedIn</button><button type="button" onclick="shareAchievement('native')">Share</button>{% endif %}
     </nav>
 
     <main class="certificate" aria-labelledby="certificateTitle">
@@ -91,4 +108,10 @@
         </footer>
     </main>
 </body>
+<script>
+function shareText(){return `I earned the Campus Escape certificate! ${document.querySelector('.recipient').innerText} · {{ total_score }} points · {{ accuracy }}% accuracy. #CampusEscape #LearnToCode`}
+function shareAchievement(platform){const url=location.href,text=shareText();if(platform==='whatsapp')window.open('https://wa.me/?text='+encodeURIComponent(text+' '+url),'_blank','noopener');else if(platform==='linkedin')window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(url),'_blank','noopener');else if(navigator.share)navigator.share({title:'Campus Escape Achievement',text,url}).catch(()=>{});else navigator.clipboard.writeText(text+' '+url).then(()=>alert('Achievement link copied.'));}
+function downloadStory(){const c=document.createElement('canvas');c.width=1080;c.height=1920;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,1080,1920);g.addColorStop(0,'#071627');g.addColorStop(.55,'#14284a');g.addColorStop(1,'#301d53');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);x.strokeStyle='#5eead4';x.lineWidth=4;x.strokeRect(58,58,964,1804);x.textAlign='center';x.fillStyle='#5eead4';x.font='700 34px Arial';x.fillText('CAMPUS ESCAPE',540,240);x.fillStyle='#fff';x.font='700 68px Arial';x.fillText('CERTIFICATE',540,460);x.font='38px Arial';x.fillText('Awarded to',540,600);x.fillStyle='#7dd3fc';x.font='700 62px Arial';x.fillText({{ username|tojson }},540,700);x.fillStyle='#fff';x.font='34px Arial';x.fillText('ID  {{ player_id }}',540,790);x.fillText('Total score  {{ total_score }} / 3000',540,930);x.fillText('Accuracy  {{ accuracy }}%',540,1000);x.fillStyle='#5eead4';x.font='700 32px Arial';x.fillText('BADGES',540,1160);x.fillStyle='#fff';x.font='30px Arial';const badges={{ badges|tojson }};x.fillText(badges.length?badges.join('  ·  '):'All learning sectors completed',540,1230,{maxWidth:850});x.font='26px Arial';x.fillText('{{ date }}',540,1660);const a=document.createElement('a');a.download='campus-escape-story.png';a.href=c.toDataURL('image/png');a.click();}
+</script>
+{% if not admin_preview %}<script src="{{ url_for('static', filename='celebrate.js') }}"></script><script>window.addEventListener('load',()=>window.celebrateMilestone&&window.celebrateMilestone());</script>{% endif %}
 </html>

@@ -25,7 +25,6 @@ async function loadQuestions() {
         if (data.success && data.questions.length) {
             questions = data.questions;
             document.querySelector('.progress-bar-bg')?.setAttribute('aria-valuemax', questions.length);
-            document.querySelector('.mission-rules')?.setAttribute('aria-label', `${questions.length} questions, 100 points per correct answer`);
             renderQ();
         } else {
             showGameError(new Error(data.message || 'Failed to load sector questions. Please return to map.'));
@@ -56,6 +55,12 @@ function renderQ() {
     selectedOptIdx = null;
     const q = questions[qIdx];
     const totalQ = questions.length;
+    const gameCard = document.getElementById('quizGameCard');
+    if (gameCard) {
+        gameCard.classList.remove('lab-step-enter');
+        void gameCard.offsetWidth;
+        gameCard.classList.add('lab-step-enter');
+    }
     document.getElementById('qNum').innerText = `Question ${qIdx + 1} / ${totalQ}`;
     document.getElementById('qMeta').innerText = [q.topic, q.difficulty].filter(Boolean).join(' · ');
     document.getElementById('progressFill').style.width = `${((qIdx + 1) / totalQ) * 100}%`;
@@ -63,8 +68,8 @@ function renderQ() {
     document.getElementById('progressCaption').innerText = `Question ${qIdx + 1} of ${totalQ}`;
     document.getElementById('qText').innerText = q.text;
     const codeEl = document.getElementById('qCode');
-    if (q.code) { codeEl.style.display = 'block'; codeEl.innerText = q.code; }
-    else { codeEl.style.display = 'none'; }
+    if (q.code) { codeEl.hidden = false; codeEl.textContent = q.code; }
+    else { codeEl.hidden = true; codeEl.textContent = ''; }
     document.getElementById('hintBox').style.display = 'none';
     document.getElementById('expBox').style.display = 'none';
     const status = document.getElementById('gameStatus');
@@ -163,7 +168,6 @@ async function handleAction() {
     try {
         const result = await apiPost('/api/quiz/next');
         if (result.finished) {
-            if (lives <= 0) alert('Game Over!');
             await saveAndExit();
         } else {
             qIdx++;
@@ -188,14 +192,19 @@ async function saveAndExit() {
     try {
         saved = await apiPost('/api/save-score', { level: window.CURRENT_LEVEL });
     } catch (err) { showGameError(err); return; }
-    document.getElementById('finishTitle').innerText = saved.sector_cleared ? 'Sector cleared!' : 'Run complete';
+    const outOfLives = lives <= 0;
+    document.getElementById('finishTitle').innerText = saved.sector_cleared ? 'Sector cleared!' : outOfLives ? 'Run ended · no lives left' : 'Run complete';
     document.getElementById('finishScore').innerText = score;
     document.getElementById('finishCorrect').innerText = `${score / 100}/${answeredCount}`;
     document.getElementById('finishAccuracy').innerText = `${answeredCount ? Math.round((score / 100) / answeredCount * 100) : 0}%`;
     document.getElementById('finishMessage').innerText = saved.sector_cleared
-        ? 'You completed every question without using all three lives. Your score is saved to your dashboard.'
-        : 'This run is saved, but the sector remains locked until you finish all questions. Review the explanations and try again.';
+        ? 'You completed all 10 questions. Your score is saved and this sector is cleared.'
+        : outOfLives
+            ? `Your run ended after all three lives were used. You answered ${score / 100} of ${answeredCount} attempted questions correctly. This run is saved, but the sector is not cleared yet. Review each explanation and try another run.`
+            : 'This run is saved, but the sector is not cleared yet. Review the explanations and try another run.';
+    document.querySelector('#finishOverlay .finish-mark').innerText = saved.sector_cleared ? '✓' : outOfLives ? '↻' : '•';
     document.getElementById('finishOverlay').style.display = 'flex';
+    if (saved.sector_cleared && window.celebrateMilestone) window.celebrateMilestone();
 }
 
 function showGameError(error) {
@@ -226,5 +235,16 @@ document.addEventListener('keydown', event => {
         if (option) { event.preventDefault(); selectOpt(index, option); }
     }
 }, true);
+
+let swipeStartX = null;
+document.addEventListener('touchstart', event => {
+    if (event.changedTouches.length === 1) swipeStartX = event.changedTouches[0].clientX;
+}, { passive: true });
+document.addEventListener('touchend', event => {
+    if (swipeStartX === null || !isChecked) { swipeStartX = null; return; }
+    const delta = event.changedTouches[0].clientX - swipeStartX;
+    swipeStartX = null;
+    if (delta < -70 && !document.getElementById('actionBtn').disabled) handleAction();
+}, { passive: true });
 
 document.addEventListener('DOMContentLoaded', loadQuestions);

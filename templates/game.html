@@ -6,19 +6,18 @@
     <title>{{ level_name }} - Campus Escape</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='cyber-upgrade.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="cyber-quiz">{% include "_global_nav.html" %}
     <header>
         <a href="/map" class="btn-back">← MAP</a>
         <div style="font-weight: 800;">{{ level_name }}</div>
-        <div style="display:flex;gap:.7rem;align-items:center;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><span>Mission {{ level_num }} of 3</span></div>
+        <div style="display:flex;gap:.7rem;align-items:center;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><button type="button" class="btn-back" data-audio-toggle onclick="toggleAudio()">Sound on</button><span>Mission {{ level_num }} of 3</span></div>
     </header>
 
     <main>
-        <section class="mission-brief" aria-label="Mission instructions">
-            <div><span class="mission-kicker">MISSION BRIEF</span><p>Choose the best answer. Each question has 45 seconds; three missed answers end the run. One free hint is available per question.</p><span class="mission-keyboard">Keys 1–4 select an option · Enter checks or continues</span></div>
-            <div class="mission-rules"><span>10 QUESTIONS</span><span>+100 POINTS PER CORRECT ANSWER</span></div>
-        </section>
         <div class="hud-grid">
             <div class="hud-card"><label>Score</label><val id="scoreVal">0</val></div>
             <div class="hud-card"><label>Lives</label><val id="livesVal" aria-label="3 lives remaining">❤️❤️❤️</val></div>
@@ -26,11 +25,11 @@
         </div>
         <div class="timer-track" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="45" aria-valuenow="45"><span id="timerFill"></span></div>
 
-        <div class="game-card">
+        <div class="game-card" id="quizGameCard">
             <div class="question-heading"><div class="q-tag" id="qNum">Question 1 / 10</div><span class="question-meta" id="qMeta"></span></div>
             <div class="q-title" id="qText">Loading sector data...</div>
             <div class="game-status" id="gameStatus" role="status" hidden></div>
-            <pre class="code-box" id="qCode"></pre>
+            <pre class="question-code" id="qCode" hidden aria-label="Code example"></pre>
 
             <div class="options-grid" id="optsContainer" role="group" aria-label="Answer options"></div>
 
@@ -62,7 +61,10 @@
         // Directly inject Flask variables to prevent timing issues
         window.CURRENT_LEVEL = "{{ level_id }}";
     </script>
-    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script src="{{ url_for('static', filename='skins.js') }}"></script>
+    <script src="{{ url_for('static', filename='shortcuts.js') }}"></script>
+    <nav class="mobile-dock" aria-label="Quick navigation"><a href="/map">Map</a><a href="/daily-challenge">Daily</a><a href="/arena">Arena</a><a href="/dashboard">Profile</a></nav>
+    <script src="{{ url_for('static', filename='celebrate.js') }}"></script>
     <script src="{{ url_for('static', filename='game.js') }}"></script>
 </body>
 </html>

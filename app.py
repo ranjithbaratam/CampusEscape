@@ -3,6 +3,8 @@ import sqlite3
 import hashlib
 import hmac
 import json
+import csv
+import io
 import random
 import ssl
 import socket
@@ -51,6 +53,46 @@ AUTH_ATTEMPTS = defaultdict(deque)
 CODE_ATTEMPTS = defaultdict(deque)
 VAULT_ATTEMPTS = defaultdict(deque)
 FEEDBACK_ATTEMPTS = defaultdict(deque)
+DAILY_ATTEMPTS = defaultdict(deque)
+USER_AVATARS = ("🐍", "⚙️", "💻", "🔐", "🚀")
+
+def player_title(sectors_cleared, debug_xp):
+    if sectors_cleared >= 3:
+        return "Escape Artist"
+    if debug_xp >= 700:
+        return "Bug Hunter"
+    if sectors_cleared >= 1:
+        return "Sector Scout"
+    return "Cadet"
+
+def process_memory_mb():
+    """Best-effort RSS read without making psutil a required dependency."""
+    try:
+        import psutil
+        return round(psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024), 1)
+    except ImportError:
+        pass
+    try:
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+            class ProcessMemoryCounters(ctypes.Structure):
+                _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                            ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                            ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+            counters = ProcessMemoryCounters(); counters.cb = ctypes.sizeof(counters)
+            process = ctypes.windll.kernel32.GetCurrentProcess()
+            if ctypes.windll.psapi.GetProcessMemoryInfo(process, ctypes.byref(counters), counters.cb):
+                return round(counters.WorkingSetSize / (1024 * 1024), 1)
+        else:
+            import resource
+            usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            return round(usage / (1024 if usage > 10**7 else 1), 1)
+    except (ImportError, AttributeError, OSError, ValueError):
+        return None
+    return None
 
 def rate_limited(bucket, key, limit, window_seconds):
     now = time.time()
@@ -103,7 +145,7 @@ def clear_active_quiz():
             conn.commit()
 
 # ==========================================
-# MAIN QUIZ QUESTION BANK (10 questions per run, sampled from 12)
+# MAIN QUIZ QUESTION BANK (10 questions per run, rotated through 30)
 # ==========================================
 
 QUESTION_BANK = {
@@ -150,6 +192,97 @@ QUESTION_BANK = {
         {"id": 12, "topic": "Time", "difficulty": "Starter", "text": "What time is 45 minutes after 2:35?", "code": "", "opts": ["3:10", "3:15", "3:20", "3:25"], "correct": 2, "hint": "Add 25 minutes to reach 3:00, then add the remaining 20 minutes.", "exp": "2:35 + 45 minutes = 3:20."}
     ]
 }
+
+# Each sector has a 30-question pool. Topics are deliberately distinct so a
+# single run samples different kinds of reasoning instead of repeating a pattern.
+_EXTRA_QUESTIONS = {
+    "python": [
+        ("Short-circuit", "What is printed?", "ready = True\nprint(ready and 'go')", ["True", "go", "ready", "Error"], 1, "and returns the second operand when the first is truthy.", "Because ready is True, the expression evaluates to and returns 'go'."),
+        ("List aliasing", "What does the final print show?", "left = [1, 2]\nright = left\nright.append(3)\nprint(left)", ["[1, 2]", "[1, 2, 3]", "[3]", "Error"], 1, "Both names refer to the same list object.", "Appending through right changes the shared list, so left also shows [1, 2, 3]."),
+        ("Dictionary fallback", "What is printed when the key is missing?", "room = {'east': 4}\nprint(room.get('west', 0) + room['east'])", ["0", "4", "KeyError", "None"], 1, "get() returns its second argument when the key is absent.", "The missing west key gives 0, then 0 + 4 is 4."),
+        ("Enumerate", "Which pair is printed on the second loop?", "for i, name in enumerate(['Ada', 'Lin']):\n    print(i, name)", ["0 Lin", "1 Lin", "2 Lin", "1 Ada"], 1, "enumerate starts counting at zero by default.", "The second item has index 1 and value Lin."),
+        ("Nested loops", "How many times does 'x' print?", "for row in range(2):\n    for col in range(3):\n        print('x')", ["2", "3", "5", "6"], 3, "Multiply the number of outer and inner iterations.", "Two outer rounds each run the inner loop three times: 2 × 3 = 6."),
+        ("Reverse slicing", "What does this slice produce?", "print('level'[::-1])", ["level", "le", "level[::-1]", "Error"], 0, "A step of -1 walks through the text backward.", "level reads the same in reverse, so it remains level."),
+        ("Set uniqueness", "What length is printed?", "codes = {2, 2, 5, 7}\nprint(len(codes))", ["4", "3", "2", "1"], 1, "A set stores each distinct value once.", "The distinct values are 2, 5, and 7, so the length is 3."),
+        ("Early return", "What does first_even return?", "def first_even(values):\n    for n in values:\n        if n % 2 == 0:\n            return n\n    return None\nprint(first_even([3, 7, 8, 10]))", ["3", "8", "10", "None"], 1, "return ends the function as soon as its condition is met.", "The first even value encountered is 8, and the function returns immediately."),
+        ("Safe division", "What is printed?", "denominator = 0\nprint('skip' if denominator == 0 else 12 / denominator)", ["0", "12", "skip", "ZeroDivisionError"], 2, "Only the selected branch of a conditional expression runs.", "The condition is true, so Python selects 'skip' without dividing."),
+        ("Range endpoint", "How many values are summed?", "print(sum(range(1, 5)))", ["4", "5", "10", "15"], 2, "range stops before its second argument.", "The values are 1, 2, 3, and 4; their sum is 10."),
+        ("String rebinding", "What is printed?", "word = 'cat'\nword = word.upper()\nprint(word)", ["cat", "CAT", "Cat", "Error"], 1, "upper() returns an uppercase string, which is assigned back to word.", "word is rebound to the new string CAT."),
+        ("Recursion", "What does countdown(3) return?", "def countdown(n):\n    if n == 0:\n        return 1\n    return n * countdown(n - 1)\nprint(countdown(3))", ["3", "6", "9", "0"], 1, "Expand the calls down to the base case at zero.", "The result is 3 × 2 × 1 × 1 = 6."),
+        ("Sort key", "Which name comes first after sorting by length?", "names = ['Ravi', 'Bo', 'Mina']\nnames.sort(key=len)\nprint(names[0])", ["Ravi", "Bo", "Mina", "Mina and Ravi"], 1, "The key makes sort compare string lengths.", "Bo has length 2, shorter than the other names."),
+        ("Zip", "What total is printed?", "a = [2, 4, 6]\nb = [1, 3]\nprint(sum(x + y for x, y in zip(a, b)))", ["9", "10", "16", "Error"], 0, "zip stops when the shorter list ends.", "It pairs (2,1) and (4,3), giving 3 + 7 = 10. (Correct answer updated below.)"),
+        ("Exception flow", "Which word is printed?", "try:\n    int('4x')\nexcept ValueError:\n    print('retry')\nelse:\n    print('done')", ["retry", "done", "4x", "Nothing"], 0, "int() cannot parse a number containing x.", "ValueError is caught, so the except block prints retry."),
+        ("Operator order", "What is printed?", "print(2 + 3 * 4 ** 2)", ["400", "56", "80", "196"], 1, "Exponentiation runs before multiplication, then addition.", "4 ** 2 = 16; 3 × 16 = 48; 2 + 48 = 50. (Correct answer updated below.)"),
+        ("Filtered comprehension", "What list is printed?", "print([n * 2 for n in range(5) if n % 2])", ["[0, 2, 4, 6, 8]", "[2, 6]", "[1, 3]", "[2, 4, 6]"], 1, "The condition keeps odd n values before doubling.", "Odd values in range(5) are 1 and 3, which double to [2, 6]."),
+        ("Stable tie", "Which value is returned?", "scores = [4, 9, 9, 2]\nprint(scores.index(max(scores)))", ["1", "2", "9", "0"], 0, "index() returns the first position matching the maximum.", "The maximum is 9 and its first occurrence is at index 1.")
+    ],
+    "c": [
+        ("Short-circuit", "What is printed?", "int x = 0;\nif (x != 0 && 10 / x > 1) puts(\"yes\");\nelse puts(\"safe\");", ["yes", "safe", "0", "Division error"], 1, "C's && skips the right side when the left side is false.", "x != 0 is false, so division is skipped and safe is printed."),
+        ("Do-while", "How many times does the body run?", "int n = 5, count = 0;\ndo { count++; } while (n < 3);\nprintf(\"%d\", count);", ["0", "1", "2", "Infinite"], 1, "A do-while executes its body before checking the condition.", "The body runs once, then n < 3 is false."),
+        ("Switch break", "What is printed?", "int code = 2;\nswitch (code) { case 1: printf(\"A\"); break; case 2: printf(\"B\"); break; default: printf(\"C\"); }", ["A", "B", "C", "BC"], 1, "Match the case value and stop at its break.", "Case 2 prints B and break prevents fall-through."),
+        ("Post-increment", "What is the behavior of this call?", "int n = 4;\nprintf(\"%d %d\", n++, n);", ["Always prints 4 5", "Always prints 5 5", "Undefined behavior", "Compile error"], 2, "The arguments may be evaluated in either order, but there is a deeper issue.", "One argument modifies n while another reads it without a sequencing rule between them, which is undefined behavior in C."),
+        ("Pass by value", "What does main print?", "void change(int n) { n = 99; }\nint main(void) { int value = 5; change(value); printf(\"%d\", value); }", ["99", "5", "0", "Compile error"], 1, "The function receives a copy of the integer.", "Changing the parameter copy does not change value in main."),
+        ("Pointer update", "What is printed?", "int value = 6;\nint *ptr = &value;\n*ptr += 2;\nprintf(\"%d\", value);", ["6", "8", "2", "Address"], 1, "*ptr accesses the value stored at the address.", "The pointed-to variable is increased by 2, so value becomes 8."),
+        ("Character array size", "What does sizeof(word) count?", "char word[] = \"cat\";\nprintf(\"%zu\", sizeof(word));", ["3", "4", "1", "Depends on text"], 1, "A C string array also stores its terminating null character.", "The array holds c, a, t, and '\\0', so sizeof is 4 bytes."),
+        ("Continue", "What is the sum?", "int total = 0;\nfor (int i = 1; i <= 4; i++) { if (i == 3) continue; total += i; }\nprintf(\"%d\", total);", ["10", "7", "6", "3"], 1, "continue skips the remaining body for i equal to 3.", "The included values are 1, 2, and 4, summing to 7."),
+        ("Nested condition", "Which word is printed?", "int x = 8;\nif (x > 5) { if (x % 2 == 0) puts(\"even\"); else puts(\"odd\"); }", ["even", "odd", "8", "Nothing"], 0, "Check the outer condition, then the inner remainder test.", "8 is greater than 5 and divisible by 2, so even is printed."),
+        ("Array boundary", "Which is the last valid index?", "int data[5] = {1,2,3,4,5};", ["5", "4", "6", "-1"], 1, "An array of five items starts at index zero.", "The valid indexes are 0 through 4."),
+        ("Struct field", "What is printed?", "struct Point { int x; int y; };\nstruct Point p = {3, 7};\nprintf(\"%d\", p.y - p.x);", ["4", "10", "-4", "37"], 0, "The initializer fills x first, then y.", "p.y is 7 and p.x is 3, so their difference is 4."),
+        ("Return value", "What does the call print?", "int clamp(int n) { if (n < 0) return 0; if (n > 9) return 9; return n; }\nprintf(\"%d\", clamp(12));", ["12", "9", "0", "-1"], 1, "Trace the first condition that returns from the function.", "12 is greater than 9, so clamp returns 9."),
+        ("While trace", "What is the final value of n?", "int n = 1;\nwhile (n < 10) n *= 2;\nprintf(\"%d\", n);", ["8", "10", "16", "32"], 2, "Double until n is no longer less than 10.", "The values are 1, 2, 4, 8, then 16; at 16 the condition is false."),
+        ("Logical precedence", "What does this expression evaluate to?", "printf(\"%d\", 1 || 0 && 0);", ["0", "1", "2", "Error"], 1, "&& has higher precedence than ||.", "0 && 0 is 0, then 1 || 0 is 1."),
+        ("Comma operator", "What is printed?", "int a = 1, b = 2;\nint result = (a += 2, b += 3);\nprintf(\"%d %d %d\", a, b, result);", ["3 5 5", "1 2 3", "3 2 3", "5 3 5"], 0, "The comma operator evaluates left to right and yields its final expression.", "a becomes 3, b becomes 5, and the expression value is b's new value, 5."),
+        ("Function argument", "What is printed?", "int twice(int n) { return n * 2; }\nprintf(\"%d\", twice(3 + 2));", ["7", "10", "12", "32"], 1, "Evaluate the argument before entering the function.", "3 + 2 is 5; twice returns 5 × 2 = 10."),
+        ("Bit mask", "What is the result?", "printf(\"%d\", 6 & 3);", ["2", "3", "5", "6"], 0, "Write both values in binary and keep bits set in both.", "6 is 110 and 3 is 011; AND gives 010, which is 2."),
+        ("Array sum", "What total is printed?", "int v[] = {2, 5, 8};\nint total = 0;\nfor (int i = 0; i < 3; i++) total += v[i] - i;\nprintf(\"%d\", total);", ["15", "12", "9", "8"], 1, "Subtract the current index from each element before adding.", "The terms are 2, 4, and 6, giving 12.")
+    ],
+    "logic": [
+        ("Truth condition", "A lamp turns on only when A is on and B is off. A is on; B is on. What happens?", "", ["Lamp on", "Lamp off", "Cannot tell", "Both states"], 1, "The rule requires both parts to be true.", "A is on, but B is not off, so the combined condition fails."),
+        ("Changing gaps", "What comes next: 3, 6, 11, 18, 27, ?", "", ["36", "38", "40", "42"], 1, "Compare the differences between neighboring terms.", "The gaps are 3, 5, 7, 9; the next gap is 11, giving 38."),
+        ("Ordering constraints", "Mina arrives before Jo. Lee arrives after Jo. Who arrives last?", "", ["Mina", "Jo", "Lee", "Cannot tell"], 2, "Turn the clues into one ordered line.", "Mina is before Jo, and Lee is after Jo: Mina, Jo, Lee."),
+        ("Pair counting", "Four teams each play every other team once. How many matches are played?", "", ["4", "6", "8", "12"], 1, "Each match is one unique pair of teams.", "There are 4 × 3 / 2 = 6 unique pairs."),
+        ("Two-step chance", "A bag has 2 red and 2 blue tokens. You draw one, replace it, then draw again. Chance both are red?", "", ["1/2", "1/4", "1/8", "3/4"], 1, "The two independent draw probabilities multiply.", "Each draw has a 1/2 chance of red, so 1/2 × 1/2 = 1/4."),
+        ("Weekday shift", "If the 1st is a Tuesday, what weekday is the 18th?", "", ["Wednesday", "Thursday", "Friday", "Saturday"], 1, "The 18th is 17 days after the 1st; reduce by full weeks.", "17 days is 2 weeks and 3 days. Tuesday plus 3 days is Friday. (Correct answer updated below.)"),
+        ("Work rate", "A printer makes 30 pages in 5 minutes. At the same rate, how long for 54 pages?", "", ["7 minutes", "8 minutes", "9 minutes", "10 minutes"], 2, "Find pages per minute, then divide 54 by that rate.", "The rate is 6 pages per minute; 54 ÷ 6 = 9 minutes."),
+        ("Overlap", "In a group of 20, 12 like chess and 11 like coding. At least how many like both?", "", ["0", "1", "3", "11"], 1, "If the two groups totaled more than 20 without overlap, someone would be counted twice.", "12 + 11 − 20 = 3 must like both. (Correct answer updated below.)"),
+        ("Grid movement", "You move 3 blocks east and 2 west. How far east of the start are you?", "", ["1 block", "5 blocks", "2 blocks", "At the start"], 0, "Opposite directions subtract.", "Three east minus two west leaves one block east."),
+        ("Minimum coins", "Using 1, 3, and 4 point tokens, what is the fewest tokens to make 6?", "", ["2", "3", "4", "6"], 0, "Check whether a larger token can combine with another available token.", "3 + 3 makes 6 using two tokens; one token cannot make 6."),
+        ("Truth deduction", "Every red key opens a gate. Key K opened no gate. What follows?", "", ["K is red", "K is not red", "K is broken", "K opens every gate"], 1, "Use the rule in reverse: a red key must open a gate.", "Since K opened no gate, it cannot be red under the stated rule."),
+        ("Consecutive numbers", "Three consecutive whole numbers sum to 36. What is the middle number?", "", ["11", "12", "13", "14"], 1, "The middle of three consecutive numbers is also their average.", "36 ÷ 3 = 12, so the numbers are 11, 12, and 13."),
+        ("Clock angle", "At 3:00, what is the smaller angle between the clock hands?", "", ["45°", "60°", "90°", "180°"], 2, "Each of the 12 hour spaces is 30 degrees.", "At 3:00 the hands are three spaces apart: 3 × 30° = 90°."),
+        ("Balance scale", "A box weighs as much as 2 kg plus half the box. What does the box weigh?", "", ["2 kg", "3 kg", "4 kg", "6 kg"], 2, "Subtract half the box's weight from both sides.", "Half the box weighs 2 kg, so the full box weighs 4 kg."),
+        ("Set difference", "All 8 students joined art or music. 5 joined art and 4 joined music. How many joined both?", "", ["0", "1", "2", "4"], 1, "Use total = art + music − overlap.", "8 = 5 + 4 − overlap, so the overlap is 1."),
+        ("Conditional logic", "If the alarm sounds, the door locks. The door is not locked. What can you conclude?", "", ["Alarm sounded", "Alarm did not sound", "Door is open", "Cannot infer anything"], 1, "If A guarantees B, then not B rules out A.", "If the alarm had sounded, the door would be locked. Since it is not, the alarm did not sound."),
+        ("Number pattern", "What comes next: 1, 2, 4, 7, 11, ?", "", ["15", "16", "17", "18"], 1, "The added amounts increase by one each time.", "The increments are 1, 2, 3, 4; next add 5 to get 16."),
+        ("Route choice", "A path goes north 4 km, east 3 km, then south 4 km. Where are you relative to start?", "", ["3 km east", "4 km north", "7 km east", "At the start"], 0, "North and south distances cancel.", "The 4 km north and 4 km south cancel, leaving 3 km east.")
+    ]
+}
+for _level, _items in _EXTRA_QUESTIONS.items():
+    _bank = QUESTION_BANK[_level]
+    for _offset, (_topic, _text, _code, _opts, _correct, _hint, _exp) in enumerate(_items, start=len(_bank) + 1):
+        _bank.append({"id": f"{_level}-{_offset:03d}", "topic": _topic, "difficulty": "Core", "text": _text,
+                      "code": _code, "opts": _opts, "correct": _correct, "hint": _hint, "exp": _exp})
+# Correct the explicitly noted arithmetic distractors and date arithmetic above.
+for _question in QUESTION_BANK["python"]:
+    if _question["topic"] == "Zip":
+        _question["opts"] = ["10", "9", "16", "Error"]
+        _question["correct"] = 0
+    elif _question["topic"] == "Operator order":
+        _question["opts"] = ["400", "50", "80", "196"]
+        _question["correct"] = 1
+for _question in QUESTION_BANK["logic"]:
+    if _question["topic"] == "Weekday shift":
+        _question["opts"] = ["Wednesday", "Thursday", "Friday", "Saturday"]
+        _question["correct"] = 2
+    elif _question["topic"] == "Overlap":
+        _question["opts"] = ["0", "1", "3", "11"]
+        _question["correct"] = 2
+for _level, _bank in QUESTION_BANK.items():
+    for _index, _question in enumerate(_bank, start=1):
+        _question["id"] = f"{_level}-{_index:03d}"
+        if _level == "logic" and _index == 6:
+            _question["topic"] = "Multiply-add sequence"
+    assert len(_bank) == 30 and len({q["topic"] for q in _bank}) == 30
 
 # ==========================================
 # DEBUG LAB CHALLENGES DATA STRUCTURE
@@ -406,6 +539,29 @@ DEBUG_SOLUTIONS = {
     "c008": "#include <stdio.h>\n\nint multiply(int a, int b) {\n    return a * b;\n}\n\nint main() {\n    printf(\"%d\\n\", multiply(6, 7));\n    return 0;\n}"
 }
 
+# PvP rotates through these reasoning-focused Python tasks alongside the
+# introductory debugging exercises above.
+_ARENA_CHALLENGES = [
+    ("py009", "BUG #09 — Keep the First Occurrence", "Fix the loop so it prints each number once, preserving its first appearance.", "values = [4, 2, 4, 3, 2]\nunique = []\nfor value in values:\n    if value in unique:\n        unique.append(value)\nprint(unique)", "[4, 2, 3]", "Check whether a value has already been collected before appending it.", "Change the condition to if value not in unique."),
+    ("py010", "BUG #10 — Find the Best Score", "Print the largest score without changing the original list.", "scores = [12, 19, 7, 15]\nbest = scores[0]\nfor score in scores:\n    if score < best:\n        best = score\nprint(best)", "19", "The comparison currently replaces best with smaller values.", "Replace score < best with score > best."),
+    ("py011", "BUG #11 — Count Only Valid Entries", "Count values from 1 through 5 inclusive. The list contains [0, 1, 5, 6]; print 2.", "values = [0, 1, 5, 6]\ncount = 0\nfor value in values:\n    if value >= 1 and value < 5:\n        count += 1\nprint(count)", "2", "The upper edge is included in the task.", "Use value <= 5 for the upper bound."),
+    ("py012", "BUG #12 — Running Balance", "Apply each change to the balance. Starting at 10, changes [-3, 5, -2] should leave 10.", "balance = 10\nfor change in [-3, 5, -2]:\n    balance = change\nprint(balance)", "10", "The loop should update the existing balance, not replace it.", "Use balance += change."),
+    ("py013", "BUG #13 — Track the Longest Word", "Print the longest word in the list. If lengths tie, keep the first one.", "words = ['map', 'vault', 'code']\nbest = words[0]\nfor word in words:\n    if len(word) < len(best):\n        best = word\nprint(best)", "vault", "The current comparison replaces best with shorter words.", "Use len(word) > len(best) to keep a longer word."),
+    ("py014", "BUG #14 — Pair the Matching Index", "Print the sum of values at even indexes. For [5, 8, 2, 9, 4], print 11.", "values = [5, 8, 2, 9, 4]\ntotal = 0\nfor index in range(len(values)):\n    if index % 2 == 1:\n        total += values[index]\nprint(total)", "11", "Indexes start at zero; the even indexes are 0, 2, and 4.", "Change the remainder check to index % 2 == 0."),
+]
+for _cid, _title, _description, _starter, _output, _hint, _fix in _ARENA_CHALLENGES:
+    DEBUG_CHALLENGES["python"].append({"id":_cid, "title":_title, "difficulty":3, "description":_description,
+        "starterCode":_starter, "expectedOutput":_output, "hints":[_hint, _fix], "xp":250})
+    _fix_code = {
+        "py009":"values = [4, 2, 4, 3, 2]\nunique = []\nfor value in values:\n    if value not in unique:\n        unique.append(value)\nprint(unique)",
+        "py010":"scores = [12, 19, 7, 15]\nbest = scores[0]\nfor score in scores:\n    if score > best:\n        best = score\nprint(best)",
+        "py011":"values = [0, 1, 5, 6]\ncount = 0\nfor value in values:\n    if value >= 1 and value <= 5:\n        count += 1\nprint(count)",
+        "py012":"balance = 10\nfor change in [-3, 5, -2]:\n    balance += change\nprint(balance)",
+        "py013":"words = ['map', 'vault', 'code']\nbest = words[0]\nfor word in words:\n    if len(word) > len(best):\n        best = word\nprint(best)",
+        "py014":"values = [5, 8, 2, 9, 4]\ntotal = 0\nfor index in range(len(values)):\n    if index % 2 == 0:\n        total += values[index]\nprint(total)"
+    }[_cid]
+    DEBUG_SOLUTIONS[_cid] = _fix_code
+
 # Database Helpers
 @contextmanager
 def get_db():
@@ -437,6 +593,8 @@ def init_db():
                 player_id TEXT,
                 pin_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'player',
+                avatar TEXT NOT NULL DEFAULT '🐍',
+                is_banned INTEGER NOT NULL DEFAULT 0,
                 best_score INTEGER DEFAULT 0,
                 attempts INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -478,12 +636,110 @@ def init_db():
                 PRIMARY KEY (username, challenge_id)
             )
         """)
+        solved_state_existed = cursor.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'debug_solved_state'"
+        ).fetchone() is not None
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS debug_solved_state (
+                username TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                solved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (username, challenge_id)
+            )
+        """)
+        if not solved_state_existed:
+            cursor.execute("""
+                INSERT OR IGNORE INTO debug_solved_state (username, challenge_id)
+                SELECT username, challenge_id FROM debug_progress
+            """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS active_quizzes (
                 quiz_id TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 payload TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS daily_challenge_progress (
+                username TEXT NOT NULL,
+                challenge_date TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                xp INTEGER NOT NULL DEFAULT 0,
+                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (username, challenge_date)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS quiz_question_rotation (
+                username TEXT NOT NULL,
+                level TEXT NOT NULL,
+                deck_json TEXT NOT NULL,
+                cursor INTEGER NOT NULL DEFAULT 0,
+                last_batch_json TEXT NOT NULL DEFAULT '[]',
+                PRIMARY KEY (username, level)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS community_puzzles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                title TEXT NOT NULL,
+                language TEXT NOT NULL CHECK(language IN ('python','c')),
+                description TEXT NOT NULL,
+                starter_code TEXT NOT NULL,
+                expected_output TEXT NOT NULL,
+                difficulty TEXT NOT NULL DEFAULT 'Core',
+                status TEXT NOT NULL DEFAULT 'pending',
+                votes INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        puzzle_columns={row["name"] for row in cursor.execute("PRAGMA table_info(community_puzzles)").fetchall()}
+        if "difficulty" not in puzzle_columns:cursor.execute("ALTER TABLE community_puzzles ADD COLUMN difficulty TEXT NOT NULL DEFAULT 'Core'")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS community_votes (
+                puzzle_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(puzzle_id, username)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS arena_queue (
+                username TEXT PRIMARY KEY,
+                match_id TEXT,
+                challenge_id TEXT NOT NULL,
+                queued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS arena_matches (
+                match_id TEXT PRIMARY KEY,
+                player_one TEXT NOT NULL,
+                player_two TEXT NOT NULL,
+                challenge_id TEXT NOT NULL,
+                state TEXT NOT NULL DEFAULT 'active',
+                progress_one TEXT NOT NULL DEFAULT '{}',
+                progress_two TEXT NOT NULL DEFAULT '{}',
+                glitch_until REAL NOT NULL DEFAULT 0,
+                hack_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS site_announcements (
+                id INTEGER PRIMARY KEY CHECK(id = 1),
+                message TEXT NOT NULL DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS admin_notification_state (
+                username TEXT PRIMARY KEY,
+                last_feedback_id INTEGER NOT NULL DEFAULT 0,
+                last_reply_id INTEGER NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("""
@@ -522,6 +778,10 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN player_id TEXT")
         if "role" not in user_columns:
             cursor.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'player'")
+        if "avatar" not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '🐍'")
+        if "is_banned" not in user_columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0")
         for user_row in cursor.execute("SELECT id FROM users WHERE player_id IS NULL OR player_id = ''").fetchall():
             cursor.execute(
                 "UPDATE users SET player_id = ? WHERE id = ?",
@@ -538,14 +798,25 @@ def init_db():
                 (SELECT player_id FROM users WHERE users.username = feedback_replies.username), 'FORMER'
             ) WHERE player_id IS NULL OR player_id = ''
         """)
-        admin = cursor.execute("SELECT id FROM users WHERE username = ? COLLATE NOCASE", ("Ranjith123",)).fetchone()
-        if admin:
-            cursor.execute("UPDATE users SET role = 'admin' WHERE id = ?", (admin["id"],))
-        else:
-            cursor.execute(
-                "INSERT INTO users (username, player_id, pin_hash, role) VALUES (?, ?, ?, 'admin')",
-                ("Ranjith123", generate_player_id(cursor), generate_password_hash("1234", method="pbkdf2:sha256", salt_length=16)),
-            )
+        # Never ship administrator names or PINs in source. A new administrator can
+        # be bootstrapped explicitly through environment variables on first setup.
+        bootstrap_name = os.environ.get("CAMPUS_ESCAPE_ADMIN_USERNAME", "").strip()
+        bootstrap_pin = os.environ.get("CAMPUS_ESCAPE_ADMIN_PIN", "").strip()
+        if bootstrap_name and bootstrap_pin:
+            if not re.fullmatch(r"[0-9]{4}", bootstrap_pin):
+                raise RuntimeError("CAMPUS_ESCAPE_ADMIN_PIN must be exactly four digits.")
+            admin = cursor.execute(
+                "SELECT id, role FROM users WHERE username = ? COLLATE NOCASE", (bootstrap_name,)
+            ).fetchone()
+            if admin is None:
+                cursor.execute(
+                    "INSERT INTO users (username, player_id, pin_hash, role) VALUES (?, ?, ?, 'admin')",
+                    (bootstrap_name, generate_player_id(cursor), generate_password_hash(bootstrap_pin, method="pbkdf2:sha256", salt_length=16)),
+                )
+            elif admin["role"] != "admin":
+                raise RuntimeError(
+                    "The configured admin username already belongs to a player. Choose a new username."
+                )
         result_columns = {row["name"] for row in cursor.execute("PRAGMA table_info(results)").fetchall()}
         if "level" not in result_columns:
             cursor.execute("ALTER TABLE results ADD COLUMN level TEXT")
@@ -560,6 +831,90 @@ def init_db():
         conn.commit()
 
 init_db()
+
+@app.context_processor
+def inject_global_player_hud():
+    """Expose only safe player summary fields to the shared navigation shell."""
+    username = session.get("username")
+    if not username:
+        return {"shell_player": None}
+    with get_db() as conn:
+        player = conn.execute(
+            "SELECT player_id, role, best_score, avatar FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        if not player:
+            return {"shell_player": None}
+        xp_row = conn.execute(
+            "SELECT (SELECT COALESCE(SUM(xp),0) FROM debug_progress WHERE username=?) + "
+            "(SELECT COALESCE(SUM(xp),0) FROM daily_challenge_progress WHERE username=?) AS xp",
+            (username, username),
+        ).fetchone()
+        clears = conn.execute(
+            "SELECT COUNT(*) FROM sector_completions WHERE username = ?", (username,)
+        ).fetchone()[0]
+        completed_levels = {
+            row["level"] for row in conn.execute(
+                "SELECT level FROM sector_completions WHERE username = ?", (username,)
+            ).fetchall()
+        }
+        vault_row = conn.execute(
+            "SELECT vault_cleared FROM user_progress WHERE username = ?", (username,)
+        ).fetchone()
+        admin_notifications = 0
+        if player["role"] == "admin":
+            seen = conn.execute(
+                "SELECT last_feedback_id, last_reply_id FROM admin_notification_state WHERE username = ?",
+                (username,),
+            ).fetchone()
+            if seen:
+                admin_notifications = conn.execute("""
+                    SELECT
+                      (SELECT COUNT(*) FROM feedback f
+                       WHERE f.id > ? AND f.channel IN ('admin','community') AND f.hidden = 0)
+                      +
+                      (SELECT COUNT(*) FROM feedback_replies r
+                       JOIN feedback f ON f.id = r.feedback_id
+                       WHERE r.id > ? AND r.username != ? AND r.hidden = 0 AND f.hidden = 0
+                         AND f.channel IN ('admin','community'))
+                """, (seen["last_feedback_id"], seen["last_reply_id"], username)).fetchone()[0]
+            else:
+                # Treat messages that existed before this notification feature was
+                # first used as already seen; only future activity should alert.
+                latest_feedback = conn.execute("SELECT COALESCE(MAX(id), 0) FROM feedback").fetchone()[0]
+                latest_reply = conn.execute("SELECT COALESCE(MAX(id), 0) FROM feedback_replies").fetchone()[0]
+                conn.execute(
+                    "INSERT INTO admin_notification_state(username, last_feedback_id, last_reply_id) VALUES (?, ?, ?)",
+                    (username, latest_feedback, latest_reply),
+                )
+                conn.commit()
+    xp = int(xp_row["xp"] if xp_row else 0)
+    return {"shell_player": {
+        "username": username,
+        "player_id": player["player_id"] or "—",
+        "role": player["role"],
+        "score": int(player["best_score"] or 0),
+        "xp": xp,
+        "rank": player_title(clears, xp),
+        "python_complete": "python" in completed_levels,
+        "c_complete": "c" in completed_levels,
+        "logic_complete": "logic" in completed_levels,
+        "vault_cleared": bool(vault_row and vault_row["vault_cleared"]),
+    }, "shell_admin_notifications": min(int(admin_notifications), 99)}
+
+@app.before_request
+def block_banned_accounts():
+    username=session.get("username")
+    if not username or request.endpoint in ("static", "logout"):
+        return None
+    with get_db() as conn:
+        row=conn.execute("SELECT is_banned FROM users WHERE username=?",(username,)).fetchone()
+    if row and row["is_banned"]:
+        session.clear()
+        if request.path.startswith("/api/"):
+            return jsonify({"success":False,"message":"This account is suspended. Contact the administrator."}),403
+        return redirect(url_for("index"))
+    return None
 
 def hash_pin(pin: str) -> str:
     return generate_password_hash(pin, method="pbkdf2:sha256", salt_length=16)
@@ -584,7 +939,9 @@ class SafePythonRunner:
                   ast.Div: operator.truediv, ast.FloorDiv: operator.floordiv,
                   ast.Mod: operator.mod, ast.Pow: operator.pow}
     compare_ops = {ast.Eq: operator.eq, ast.NotEq: operator.ne, ast.Lt: operator.lt,
-                   ast.LtE: operator.le, ast.Gt: operator.gt, ast.GtE: operator.ge}
+                   ast.LtE: operator.le, ast.Gt: operator.gt, ast.GtE: operator.ge,
+                   ast.In: lambda left, right: left in right,
+                   ast.NotIn: lambda left, right: left not in right}
 
     def __init__(self):
         self.env = {}
@@ -670,6 +1027,16 @@ class SafePythonRunner:
             safe_calls = {"len": len, "str": str, "int": int, "float": float, "abs": abs}
             if name in safe_calls and len(args) == 1:
                 return safe_calls[name](*args)
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name) and node.func.attr == "append"
+                and not node.keywords and len(node.args) == 1):
+            target = self.env.get(node.func.value.id)
+            if not isinstance(target, list):
+                raise ValueError("append() is supported only for a named list.")
+            if len(target) >= 10000:
+                raise ValueError("List limit reached (10,000 items).")
+            target.append(self.expression(node.args[0]))
+            return None
         raise ValueError(f"Unsupported Python feature: {type(node).__name__}.")
 
     def statements(self, nodes):
@@ -784,7 +1151,8 @@ def run_c_code(source_code: str, timeout_sec: int = 5):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    csrf_token = session.setdefault("csrf_token", secrets.token_urlsafe(32))
+    return render_template("index.html", csrf_token=csrf_token)
 @app.route("/map")
 def map_page():
     if "username" not in session:
@@ -792,12 +1160,13 @@ def map_page():
 
     with get_db() as conn:
         cursor = conn.cursor()
-        account = cursor.execute("SELECT player_id, role FROM users WHERE username = ?", (session["username"],)).fetchone()
+        account = cursor.execute("SELECT player_id, role, avatar FROM users WHERE username = ?", (session["username"],)).fetchone()
         cursor.execute("""
             SELECT MAX(python_score) as py_s, MAX(c_score) as c_s, MAX(logic_score) as log_s
             FROM results WHERE username = ?
         """, (session["username"],))
         res = cursor.fetchone()
+        map_xp_row = cursor.execute("SELECT (SELECT COALESCE(SUM(xp),0) FROM debug_progress WHERE username=?) + (SELECT COALESCE(SUM(xp),0) FROM daily_challenge_progress WHERE username=?) AS xp", (session["username"], session["username"])).fetchone()
 
     py_s = res["py_s"] if res and res["py_s"] is not None else 0
     c_s = res["c_s"] if res and res["c_s"] is not None else 0
@@ -819,7 +1188,9 @@ def map_page():
     return render_template(
         "map.html",
         username=session["username"],
+        player_title=player_title(sum((python_completed, c_completed, logic_completed)), map_xp_row["xp"] if map_xp_row else 0),
         player_id=account["player_id"] if account else "—",
+        avatar=account["avatar"] if account else "🐍",
         is_admin=is_admin,
         python_completed=python_completed,
         py_s=py_s, c_s=c_s, log_s=log_s,
@@ -868,6 +1239,7 @@ def certificate():
 
     with get_db() as conn:
         cursor = conn.cursor()
+        account = cursor.execute("SELECT player_id, avatar FROM users WHERE username = ?", (session["username"],)).fetchone()
         cursor.execute("""
             SELECT MAX(python_score) as py_s, MAX(c_score) as c_s, MAX(logic_score) as log_s
             FROM results WHERE username = ?
@@ -909,6 +1281,8 @@ def certificate():
     return render_template(
         "certificate.html",
         username=session["username"],
+        player_id=account["player_id"] if account else "",
+        avatar=account["avatar"] if account else "🐍",
         accuracy=accuracy,
         date=today_date,
         certificate_id=certificate_id,
@@ -917,6 +1291,7 @@ def certificate():
         logic_score=log_s,
         total_score=py_s + c_s + log_s,
         debug_xp=debug_xp_row["xp"] if debug_xp_row else 0,
+        badges=[label for label, unlocked in (("Bug Hunter", (debug_xp_row["xp"] if debug_xp_row else 0) >= 700), ("Escape Artist", all_sectors_completed(session["username"])), ("Master Cipher", vault_is_cleared(session["username"]))) if unlocked],
         admin_preview=admin_preview,
     )
 
@@ -927,7 +1302,7 @@ def dashboard():
 
     with get_db() as conn:
         user_info = conn.execute(
-            "SELECT player_id, best_score, attempts, role FROM users WHERE username = ?",
+            "SELECT player_id, best_score, attempts, role, avatar FROM users WHERE username = ?",
             (session["username"],),
         ).fetchone()
         history = conn.execute("""
@@ -944,7 +1319,16 @@ def dashboard():
     py_best, c_best, logic_best = get_best_scores(session["username"])
     with get_db() as conn:
         debug_xp_row = conn.execute("SELECT COALESCE(SUM(xp), 0) AS xp FROM debug_progress WHERE username = ?", (session["username"],)).fetchone()
-    debug_xp = debug_xp_row["xp"] if debug_xp_row else 0
+        daily_row = conn.execute("SELECT COUNT(*) AS clears, COALESCE(SUM(xp),0) AS xp FROM daily_challenge_progress WHERE username = ?", (session["username"],)).fetchone()
+        rank_rows = conn.execute("""
+            SELECT u.username, u.best_score,
+                   (SELECT COUNT(*) FROM sector_completions s WHERE s.username=u.username) AS sectors,
+                   (SELECT COALESCE(SUM(xp),0) FROM debug_progress d WHERE d.username=u.username) +
+                   (SELECT COALESCE(SUM(xp),0) FROM daily_challenge_progress dc WHERE dc.username=u.username) AS xp
+            FROM users u WHERE u.role='player'
+            ORDER BY u.best_score DESC, sectors DESC, xp DESC, u.created_at ASC
+        """).fetchall()
+    debug_xp = (debug_xp_row["xp"] if debug_xp_row else 0) + (daily_row["xp"] if daily_row else 0)
     achievements = [
         {"icon": "🐍", "name": "Python Pioneer", "description": "Complete your first Python mission.", "unlocked": sector_is_completed(session["username"], "python")},
         {"icon": "🧩", "name": "Polyglot", "description": "Clear both Python and C sectors.", "unlocked": sector_is_completed(session["username"], "python") and sector_is_completed(session["username"], "c")},
@@ -962,17 +1346,172 @@ def dashboard():
 
     return render_template(
         "dashboard.html",
+        username=session["username"],
         player_id=user_info["player_id"],
+        avatar=user_info["avatar"],
+        player_title=player_title(sum(1 for sector in sectors if sector["cleared"]), debug_xp),
         is_admin=user_info["role"] == "admin",
         best_score=best_score,
         attempts=attempts,
+        py_best=py_best,
+        c_best=c_best,
+        logic_best=logic_best,
         latest=latest,
         history=history,
         achievements=achievements,
         debug_xp=debug_xp,
+        daily_clears=daily_row["clears"] if daily_row else 0,
         sectors=sectors,
+        vault_cleared=vault_is_cleared(session["username"]),
         accuracy=latest["accuracy"] if latest and latest["accuracy"] is not None else 0,
+        leaderboard_rank=next((index for index, row in enumerate(rank_rows, start=1) if row["username"] == session["username"]), None),
     )
+
+def daily_question_for(date_key):
+    day_number = datetime.date.fromisoformat(date_key).toordinal()
+    mode_day = day_number % 3
+    if mode_day == 0:
+        puzzles = [
+            {"id":"parson-sum-evens", "topic":"Code reconstruction", "text":"Arrange the blocks to create sum_even(values), which returns the sum of only the even numbers. For [3, 4, 8], the result should be 12.", "blocks":["def sum_even(values):", "    total = 0", "    for value in values:", "        if value % 2 == 0:", "            total += value", "    return total"]},
+            {"id":"parson-count-positive", "topic":"Code reconstruction", "text":"Arrange the blocks to define count_positive(values) and return how many values are greater than zero. For [-2, 5, 1], the result should be 2.", "blocks":["def count_positive(values):", "    count = 0", "    for value in values:", "        if value > 0:", "            count += 1", "    return count"]},
+            {"id":"parson-first-long", "topic":"Code reconstruction", "text":"Arrange the blocks to define first_long(words), returning the first word longer than 4 characters, or None if there is no match.", "blocks":["def first_long(words):", "    for word in words:", "        if len(word) > 4:", "            return word", "    return None"]},
+            {"id":"parson-running-max", "topic":"Code reconstruction", "text":"Arrange the blocks to define running_total(values), returning a list of cumulative sums. For [2, 3, 1], return [2, 5, 6].", "blocks":["def running_total(values):", "    result = []", "    total = 0", "    for value in values:", "        total += value", "        result.append(total)", "    return result"]},
+            {"id":"parson-count-vowels", "topic":"Code reconstruction", "text":"Arrange the blocks to define count_vowels(text), counting a, e, i, o, and u regardless of case.", "blocks":["def count_vowels(text):", "    vowels = 'aeiou'", "    count = 0", "    for character in text.lower():", "        if character in vowels:", "            count += 1", "    return count"]},
+            {"id":"parson-unique-order", "topic":"Code reconstruction", "text":"Arrange the blocks to define unique_in_order(values), keeping each value's first appearance. For [2, 2, 5, 2], return [2, 5].", "blocks":["def unique_in_order(values):", "    result = []", "    for value in values:", "        if value not in result:", "            result.append(value)", "    return result"]}
+        ]
+        puzzle = random.Random(f"campus-escape-parson:{date_key}").choice(puzzles)
+        order = list(range(len(puzzle["blocks"])))
+        random.Random(f"campus-escape-parson-order:{date_key}").shuffle(order)
+        return "python", {**puzzle, "mode":"parson", "correct_order":list(range(len(order))),
+                           "blocks":[{"id":i, "text":puzzle["blocks"][i]} for i in order]}
+    if mode_day == 1:
+        puzzles = [
+            {"id":"debug-running-total", "topic":"Debug the code", "text":"Fix the update so every change is added to the current balance. The final balance should be 10.", "starterCode":"balance = 10\nfor change in [-3, 5, -2]:\n    balance = change\nprint(balance)", "expectedOutput":"10", "hint":"The loop currently replaces the balance with each new change."},
+            {"id":"debug-inclusive-range", "topic":"Debug the code", "text":"Fix the loop so it adds all values from 1 through 4 inclusive. The total should be 10.", "starterCode":"total = 0\nfor value in range(1, 4):\n    total += value\nprint(total)", "expectedOutput":"10", "hint":"Python's range stops before its final number."},
+            {"id":"debug-best-score", "topic":"Debug the code", "text":"Fix the comparison so best keeps the highest score. The program should print 19.", "starterCode":"scores = [12, 19, 7, 15]\nbest = scores[0]\nfor score in scores:\n    if score < best:\n        best = score\nprint(best)", "expectedOutput":"19", "hint":"The current comparison replaces best when it finds a smaller value."},
+            {"id":"debug-count-positives", "topic":"Debug the code", "text":"Fix the condition to count values above zero. For [-2, 5, 1, 0], print 2.", "starterCode":"values = [-2, 5, 1, 0]\ncount = 0\nfor value in values:\n    if value < 0:\n        count += 1\nprint(count)", "expectedOutput":"2", "hint":"Zero is not positive, and negative values should not be counted."}
+        ]
+        puzzle = random.Random(f"campus-escape-debug:{date_key}").choice(puzzles)
+        return "python", {**puzzle, "mode":"debug"}
+    candidates = [(level, q) for level, bank in QUESTION_BANK.items()
+                  for q in bank if q["difficulty"].lower() == "challenge"]
+    rng = random.Random(f"campus-escape:{date_key}")
+    level, question = rng.choice(candidates)
+    return level, {**question, "mode":"multiple_choice"}
+
+def daily_cycle_key(now=None):
+    """Daily missions roll over at 4:00 a.m. India Standard Time (UTC+05:30)."""
+    india_tz = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+    current = now or datetime.datetime.now(india_tz)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=india_tz)
+    current = current.astimezone(india_tz)
+    if current.hour < 4:
+        current -= datetime.timedelta(days=1)
+    return current.date().isoformat()
+
+@app.route("/daily-challenge")
+def daily_challenge_page():
+    if "username" not in session:
+        return redirect(url_for("index"))
+    csrf_token = session.setdefault("csrf_token", secrets.token_urlsafe(32))
+    return render_template("daily_challenge.html", csrf_token=csrf_token)
+
+@app.route("/api/daily/get")
+def daily_challenge_get():
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Sign in to play the daily challenge."}), 401
+    today = daily_cycle_key()
+    level, question = daily_question_for(today)
+    with get_db() as conn:
+        done = conn.execute("SELECT xp, completed_at FROM daily_challenge_progress WHERE username = ? AND challenge_date = ?",
+                            (session["username"], today)).fetchone()
+    if question["mode"] == "parson":
+        session["daily_active"] = {"date":today, "id":question["id"], "mode":"parson", "correct_order":question["correct_order"]}
+        challenge = {"id":question["id"], "mode":"parson", "topic":question["topic"], "text":question["text"], "blocks":question["blocks"]}
+    elif question["mode"] == "debug":
+        session["daily_active"] = {"date":today, "id":question["id"], "mode":"debug"}
+        challenge = {key:question[key] for key in ("id", "mode", "topic", "text", "starterCode", "expectedOutput", "hint")}
+    else:
+        option_pairs = list(enumerate(question["opts"]))
+        random.shuffle(option_pairs)
+        correct_index = next(i for i, pair in enumerate(option_pairs) if pair[0] == question["correct"])
+        session["daily_active"] = {"date": today, "id": f"{level}-{question['id']}", "mode":"multiple_choice", "correct": correct_index}
+        challenge = {"id": f"{level}-{question['id']}", "mode":"multiple_choice", "topic": question["topic"], "text": question["text"],
+                     "code": question["code"], "opts": [p[1] for p in option_pairs]}
+    return jsonify({"success": True, "date": today, "completed": bool(done), "xp": done["xp"] if done else 0,
+                    "challenge": challenge})
+
+@app.route("/api/daily/answer", methods=["POST"])
+def daily_challenge_answer():
+    username = session.get("username")
+    active = session.get("daily_active", {})
+    today = daily_cycle_key()
+    if not username:
+        return jsonify({"success": False, "message": "Sign in to play the daily challenge."}), 401
+    expected_csrf = session.get("csrf_token", "")
+    supplied_csrf = request.headers.get("X-CSRF-Token", "")
+    if not expected_csrf or not secrets.compare_digest(expected_csrf, supplied_csrf):
+        return jsonify({"success": False, "message": "Session check failed. Refresh the page and try again."}), 403
+    if active.get("date") != today:
+        return jsonify({"success": False, "message": "Reload today's challenge and try again."}), 400
+    if rate_limited(DAILY_ATTEMPTS, username, 30, 300):
+        return jsonify({"success": False, "message": "Too many attempts. Please wait a few minutes."}), 429
+    payload = json_data()
+    if active.get("mode") == "parson":
+        selected = payload.get("order")
+        if not isinstance(selected, list) or len(selected) != len(active.get("correct_order", [])) or any(type(i) is not int for i in selected) or sorted(selected) != list(range(len(selected))):
+            return jsonify({"success": False, "message": "Arrange every code block once, then check your order."}), 400
+        is_correct = selected == active["correct_order"]
+    elif active.get("mode") == "debug":
+        code = payload.get("code", "")
+        _, daily_entry = daily_question_for(today)
+        challenge = daily_entry if daily_entry.get("mode") == "debug" and daily_entry.get("id") == active.get("id") else None
+        if not isinstance(code, str) or len(code) > 12000:
+            return jsonify({"success":False, "message":"Enter code up to 12,000 characters."}), 400
+        result = run_python_code(code)
+        is_correct = result["success"] and result["stdout"].strip() == challenge["expectedOutput"].strip() if challenge else False
+        if not is_correct:
+            detail = result["stderr"] if not result["success"] else "The output does not match the target yet."
+            return jsonify({"success":True, "correct":False, "message":detail or "Check your code and try again."})
+    else:
+        selected = payload.get("answer")
+        if type(selected) is not int or not 0 <= selected < 4:
+            return jsonify({"success": False, "message": "Choose one of the four answers."}), 400
+        is_correct = selected == active.get("correct")
+    if not is_correct:
+        return jsonify({"success": True, "correct": False, "message": "Not quite. Review the clue and try again."})
+    with get_db() as conn:
+        cursor = conn.execute("INSERT OR IGNORE INTO daily_challenge_progress (username, challenge_date, challenge_id, xp) VALUES (?, ?, ?, 150)",
+                              (username, today, active["id"]))
+        conn.commit()
+        awarded = cursor.rowcount == 1
+    return jsonify({"success": True, "correct": True, "completed": True, "xp": 150 if awarded else 0,
+                    "message": "Daily challenge cleared! Bonus XP saved." if awarded else "You already cleared today's challenge."})
+
+@app.route("/leaderboard")
+def leaderboard():
+    username = session.get("username")
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT u.username, u.player_id, u.avatar, u.best_score,
+                   (SELECT COUNT(*) FROM sector_completions s WHERE s.username=u.username) AS sectors,
+                   (SELECT COALESCE(SUM(xp),0) FROM debug_progress d WHERE d.username=u.username) +
+                   (SELECT COALESCE(SUM(xp),0) FROM daily_challenge_progress dc WHERE dc.username=u.username) AS xp
+            FROM users u WHERE u.role='player'
+            ORDER BY u.best_score DESC, sectors DESC, xp DESC, u.created_at ASC LIMIT 100
+        """).fetchall()
+    entries = [dict(row, rank=i + 1, is_current=(row["username"] == username)) for i, row in enumerate(rows)]
+    return render_template("leaderboard.html", entries=entries, username=username)
+
+@app.route("/challenge/<challenge_id>")
+def shared_challenge(challenge_id):
+    challenge = next((c for group in DEBUG_CHALLENGES.values() for c in group if c["id"] == challenge_id), None)
+    if not challenge:
+        abort(404)
+    # Challenge pages show code/output but use the existing restricted runner.
+    language = "c" if challenge["id"].startswith("c") else "python"
+    return render_template("challenge.html", challenge=challenge, language=language, authenticated=("username" in session))
 
 def is_current_admin():
     username = session.get("username")
@@ -1011,14 +1550,109 @@ def admin_dashboard():
                    COALESCE(SUM(CASE WHEN status = 'open' AND hidden = 0 THEN 1 ELSE 0 END), 0) AS open
             FROM feedback
         """).fetchone()
+        analytics = conn.execute("""
+            SELECT COUNT(*) AS players,
+                   COALESCE(AVG((SELECT COALESCE(SUM(d.xp),0) FROM debug_progress d WHERE d.username=u.username) +
+                                (SELECT COALESCE(SUM(dc.xp),0) FROM daily_challenge_progress dc WHERE dc.username=u.username)),0) AS avg_xp,
+                   (SELECT COUNT(*) FROM sector_completions WHERE level='python') AS python_clears,
+                   (SELECT COUNT(*) FROM sector_completions WHERE level='c') AS c_clears,
+                   (SELECT COUNT(*) FROM sector_completions WHERE level='logic') AS logic_clears
+            FROM users u WHERE role='player'
+        """).fetchone()
+        active_sessions = conn.execute("SELECT COUNT(DISTINCT username) FROM active_quizzes WHERE updated_at >= datetime('now','-5 minutes')").fetchone()[0]
         accounts = conn.execute("""
-            SELECT u.username, u.player_id, u.role, u.best_score, u.attempts, u.created_at,
+            SELECT u.username, u.player_id, u.role, u.is_banned, u.best_score, u.attempts, u.created_at,
                    (SELECT COUNT(*) FROM sector_completions s WHERE s.username = u.username) AS sectors,
                    (SELECT COALESCE(SUM(d.xp), 0) FROM debug_progress d WHERE d.username = u.username) AS debug_xp,
                    (SELECT COALESCE(v.vault_cleared, 0) FROM user_progress v WHERE v.username = u.username) AS vault_cleared
             FROM users u ORDER BY u.created_at DESC, u.id DESC
         """).fetchall()
-    return render_template("admin.html", accounts=accounts, stats=stats, feedback_stats=feedback_stats, admin_username=session["username"], csrf_token=csrf_token)
+        pending_puzzles = conn.execute("SELECT id,username,title,language,created_at FROM community_puzzles WHERE status='pending' ORDER BY created_at").fetchall()
+    completion_rates = {level: round((analytics[f"{level}_clears"] / analytics["players"] * 100), 1) if analytics["players"] else 0
+                        for level in ("python", "c", "logic")}
+    return render_template("admin.html", accounts=accounts, stats=stats, feedback_stats=feedback_stats,
+                           analytics=analytics, completion_rates=completion_rates, active_sessions=active_sessions, pending_puzzles=pending_puzzles,
+                           memory_usage=process_memory_mb(),
+                           admin_username=session["username"], csrf_token=csrf_token)
+
+@app.route("/api/admin/notifications")
+def admin_notifications_api():
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Sign in required."}), 401
+    if not is_current_admin():
+        return jsonify({"success": False, "message": "Administrator access required."}), 403
+    username = session["username"]
+    with get_db() as conn:
+        seen = conn.execute(
+            "SELECT last_feedback_id, last_reply_id FROM admin_notification_state WHERE username = ?",
+            (username,),
+        ).fetchone()
+        count = 0
+        if seen:
+            count = conn.execute("""
+                SELECT
+                  (SELECT COUNT(*) FROM feedback f
+                   WHERE f.id > ? AND f.channel IN ('admin','community') AND f.hidden = 0)
+                  +
+                  (SELECT COUNT(*) FROM feedback_replies r
+                   JOIN feedback f ON f.id = r.feedback_id
+                   WHERE r.id > ? AND r.username != ? AND r.hidden = 0 AND f.hidden = 0
+                     AND f.channel IN ('admin','community'))
+            """, (seen["last_feedback_id"], seen["last_reply_id"], username)).fetchone()[0]
+    return jsonify({"success": True, "count": min(int(count), 99)})
+
+@app.route("/admin/results.csv")
+def admin_results_csv():
+    if "username" not in session:
+        return redirect(url_for("index"))
+    if not is_current_admin():
+        abort(403)
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT r.played_at, r.username, u.player_id, r.level, r.run_score,
+                   r.python_score, r.c_score, r.logic_score, r.total_score, r.accuracy
+            FROM results r LEFT JOIN users u ON u.username=r.username
+            ORDER BY r.id DESC
+        """).fetchall()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(("Played at", "Username", "Player ID", "Lab", "Run score", "Python best", "C best", "Logic best", "Total best", "Accuracy"))
+    writer.writerows([tuple(row) for row in rows])
+    return app.response_class("\ufeff" + output.getvalue(), mimetype="text/csv",
+                              headers={"Content-Disposition": "attachment; filename=campus-escape-results.csv"})
+
+def clear_player_progress(conn, username):
+    """Clear game state without deleting the account or community activity."""
+    for table in ("results", "user_progress", "sector_completions", "debug_progress", "debug_solved_state",
+                  "active_quizzes", "daily_challenge_progress", "quiz_question_rotation"):
+        conn.execute(f'DELETE FROM "{table}" WHERE username = ?', (username,))
+    match_ids = [row[0] for row in conn.execute(
+        "SELECT match_id FROM arena_matches WHERE player_one = ? OR player_two = ?", (username, username)
+    ).fetchall()]
+    for match_id in match_ids:
+        conn.execute("DELETE FROM arena_queue WHERE match_id = ?", (match_id,))
+    conn.execute("DELETE FROM arena_queue WHERE username = ?", (username,))
+    conn.execute("DELETE FROM arena_matches WHERE player_one = ? OR player_two = ?", (username, username))
+    conn.execute("UPDATE users SET best_score = 0, attempts = 0 WHERE username = ?", (username,))
+
+def delete_player_account(conn, username):
+    """Remove an account and its private/user-owned records consistently."""
+    puzzle_ids = [row[0] for row in conn.execute(
+        "SELECT id FROM community_puzzles WHERE username = ?", (username,)
+    ).fetchall()]
+    for puzzle_id in puzzle_ids:
+        conn.execute("DELETE FROM community_votes WHERE puzzle_id = ?", (puzzle_id,))
+    conn.execute("DELETE FROM community_puzzles WHERE username = ?", (username,))
+    conn.execute("DELETE FROM community_votes WHERE username = ?", (username,))
+    feedback_ids = [row[0] for row in conn.execute(
+        "SELECT id FROM feedback WHERE username = ?", (username,)
+    ).fetchall()]
+    for feedback_id in feedback_ids:
+        conn.execute("DELETE FROM feedback_replies WHERE feedback_id = ?", (feedback_id,))
+    conn.execute("DELETE FROM feedback WHERE username = ?", (username,))
+    conn.execute("DELETE FROM feedback_replies WHERE username = ?", (username,))
+    clear_player_progress(conn, username)
+    conn.execute("DELETE FROM users WHERE username = ?", (username,))
 
 @app.route("/api/admin/accounts/<player_id>/reset", methods=["POST"])
 def admin_reset_account(player_id):
@@ -1032,9 +1666,7 @@ def admin_reset_account(player_id):
         if target["role"] == "admin":
             return jsonify({"success": False, "message": "Administrator accounts are protected."}), 403
         username = target["username"]
-        for table in ("results", "user_progress", "sector_completions", "debug_progress", "active_quizzes"):
-            conn.execute(f'DELETE FROM "{table}" WHERE username = ?', (username,))
-        conn.execute("UPDATE users SET best_score = 0, attempts = 0 WHERE username = ?", (username,))
+        clear_player_progress(conn, username)
         conn.commit()
     return jsonify({"success": True, "message": f"Progress reset for {player_id}."})
 
@@ -1050,9 +1682,7 @@ def admin_delete_account(player_id):
         if target["role"] == "admin":
             return jsonify({"success": False, "message": "Administrator accounts are protected."}), 403
         username = target["username"]
-        for table in ("results", "user_progress", "sector_completions", "debug_progress", "active_quizzes"):
-            conn.execute(f'DELETE FROM "{table}" WHERE username = ?', (username,))
-        conn.execute("DELETE FROM users WHERE username = ?", (username,))
+        delete_player_account(conn, username)
         conn.commit()
     return jsonify({"success": True, "message": f"Account {player_id} deleted."})
 
@@ -1089,9 +1719,7 @@ def admin_qa_reset():
         return auth_error
     username = session["username"]
     with get_db() as conn:
-        for table in ("results", "user_progress", "sector_completions", "debug_progress", "active_quizzes"):
-            conn.execute(f'DELETE FROM "{table}" WHERE username = ?', (username,))
-        conn.execute("UPDATE users SET best_score = 0, attempts = 0 WHERE username = ?", (username,))
+        clear_player_progress(conn, username)
         conn.commit()
     session.pop("admin_vault_preview", None)
     return jsonify({"success": True, "message": "Your admin QA progress has been reset."})
@@ -1113,6 +1741,10 @@ def admin_qa_debug_complete():
                 conn.execute(
                     "INSERT OR IGNORE INTO debug_progress (username, challenge_id, xp) VALUES (?, ?, ?)",
                     (username, challenge["id"], challenge["xp"]),
+                )
+                conn.execute(
+                    "INSERT OR IGNORE INTO debug_solved_state (username, challenge_id) VALUES (?, ?)",
+                    (username, challenge["id"]),
                 )
         conn.commit()
     return jsonify({"success": True, "message": "Selected debugging challenges marked mastered on your admin account."})
@@ -1235,6 +1867,17 @@ def admin_feedback_page():
         """).fetchall()
         threads = attach_feedback_replies(conn, rows, include_hidden=True, viewer_is_admin=True)
         profile = conn.execute("SELECT player_id FROM users WHERE username = ?", (session["username"],)).fetchone()
+        latest_feedback_id = conn.execute("SELECT COALESCE(MAX(id), 0) FROM feedback").fetchone()[0]
+        latest_reply_id = conn.execute("SELECT COALESCE(MAX(id), 0) FROM feedback_replies").fetchone()[0]
+        conn.execute("""
+            INSERT INTO admin_notification_state(username, last_feedback_id, last_reply_id, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(username) DO UPDATE SET
+                last_feedback_id = excluded.last_feedback_id,
+                last_reply_id = excluded.last_reply_id,
+                updated_at = CURRENT_TIMESTAMP
+        """, (session["username"], latest_feedback_id, latest_reply_id))
+        conn.commit()
     return render_template("admin_feedback.html", threads=threads, csrf_token=csrf_token,
                            account_username=session["username"], account_player_id=profile["player_id"] if profile else "—")
 
@@ -1344,7 +1987,8 @@ def debug_lab(lang):
         return redirect(url_for("index"))
     if lang not in ["python", "c"]:
         return redirect(url_for("debug_select"))
-    return render_template("debug_lab.html", lang=lang, username=session["username"])
+    csrf_token = session.setdefault("csrf_token", secrets.token_urlsafe(32))
+    return render_template("debug_lab.html", lang=lang, username=session["username"], csrf_token=csrf_token)
 
 # ==========================================
 # API ENDPOINTS
@@ -1355,6 +1999,9 @@ def auth():
     data = json_data()
     identifier = data.get("identifier", data.get("username", ""))
     pin = data.get("pin", "")
+    avatar = data.get("avatar", "🐍")
+    if avatar not in USER_AVATARS:
+        avatar = "🐍"
     client_key = request.remote_addr or "unknown"
     if rate_limited(AUTH_ATTEMPTS, client_key, 8, 600):
         return jsonify({"success": False, "message": "Too many sign-in attempts. Wait 10 minutes and try again."}), 429
@@ -1393,8 +2040,8 @@ def auth():
             if is_player_id:
                 return jsonify({"success": False, "message": "That account ID is not recognized. Check the ID and try again."}), 401
             cursor.execute(
-                "INSERT INTO users (username, player_id, pin_hash) VALUES (?, ?, ?)",
-                (identifier, generate_player_id(cursor), hash_pin(pin)),
+                "INSERT INTO users (username, player_id, pin_hash, avatar) VALUES (?, ?, ?, ?)",
+                (identifier, generate_player_id(cursor), hash_pin(pin), avatar),
             )
             conn.commit()
             session.clear()
@@ -1410,13 +2057,44 @@ def get_questions(level):
     if not level_is_unlocked(session["username"], level):
         return jsonify({"success": False, "message": "Complete the previous sector to unlock this mission."}), 403
 
-    sample_size = min(10, len(QUESTION_BANK[level]))
-    questions = random.sample(QUESTION_BANK[level], sample_size)
+    username = session["username"]
+    bank = QUESTION_BANK[level]
+    with get_db() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        rotation = conn.execute("SELECT deck_json, cursor, last_batch_json FROM quiz_question_rotation WHERE username=? AND level=?",
+                                (username, level)).fetchone()
+        deck = json.loads(rotation["deck_json"]) if rotation else []
+        cursor = int(rotation["cursor"]) if rotation else 0
+        last_batch = json.loads(rotation["last_batch_json"]) if rotation else []
+        if len(deck) != len(bank) or cursor + 10 > len(bank):
+            deck = [q["id"] for q in bank]
+            random.shuffle(deck)
+            for _ in range(8):
+                if deck[:10] != last_batch:
+                    break
+                random.shuffle(deck)
+            cursor = 0
+        question_by_id = {q["id"]: q for q in bank}
+        selected_ids = deck[cursor:cursor + 10]
+        questions = [question_by_id[qid] for qid in selected_ids]
+        conn.execute("""INSERT INTO quiz_question_rotation(username,level,deck_json,cursor,last_batch_json)
+                        VALUES(?,?,?,?,?) ON CONFLICT(username,level) DO UPDATE SET
+                        deck_json=excluded.deck_json,cursor=excluded.cursor,last_batch_json=excluded.last_batch_json""",
+                     (username, level, json.dumps(deck), cursor + 10, json.dumps(selected_ids)))
+    shuffled_questions = []
+    for original in questions:
+        question = dict(original)
+        indexed_options = list(enumerate(original["opts"]))
+        random.shuffle(indexed_options)
+        question["opts"] = [option for _, option in indexed_options]
+        question["correct"] = next(index for index, (original_index, _) in enumerate(indexed_options)
+                                   if original_index == original["correct"])
+        shuffled_questions.append(question)
     # Keep answer keys and hints on the server. The browser receives only display data.
     clear_active_quiz()
     quiz = {
         "level": level,
-        "questions": [{"id": q["id"], "correct": q["correct"], "hint": q["hint"], "exp": q["exp"]} for q in questions],
+        "questions": [{"id": q["id"], "correct": q["correct"], "hint": q["hint"], "exp": q["exp"]} for q in shuffled_questions],
         "index": 0,
         "score": 0,
         "lives": 3,
@@ -1425,7 +2103,7 @@ def get_questions(level):
         "hint_used": False,
     }
     save_active_quiz(quiz)
-    public_questions = [{k: v for k, v in q.items() if k not in ("correct", "hint", "exp")} for q in questions]
+    public_questions = [{k: v for k, v in q.items() if k not in ("correct", "hint", "exp")} for q in shuffled_questions]
     return jsonify({"success": True, "questions": public_questions})
 
 @app.route("/api/quiz/hint", methods=["POST"])
@@ -1537,7 +2215,7 @@ def save_score():
 def get_debug_challenges(lang):
     if "username" not in session:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
-    if lang not in DEBUG_CHALLENGES:
+    if not isinstance(lang, str) or lang not in DEBUG_CHALLENGES:
         return jsonify({"success": False, "message": "Language not supported."}), 400
     safe_challenges = [
         {key: value for key, value in challenge.items() if key != "expectedOutput"}
@@ -1550,8 +2228,32 @@ def get_debug_progress():
     if "username" not in session:
         return jsonify({"success": False, "message": "Unauthorized"}), 401
     with get_db() as conn:
-        rows = conn.execute("SELECT challenge_id, xp FROM debug_progress WHERE username = ?", (session["username"],)).fetchall()
-    return jsonify({"success": True, "xp": sum(row["xp"] for row in rows), "solved": [row["challenge_id"] for row in rows]})
+        xp_row = conn.execute("SELECT COALESCE(SUM(xp), 0) AS total FROM debug_progress WHERE username = ?", (session["username"],)).fetchone()
+        solved_rows = conn.execute("SELECT challenge_id FROM debug_solved_state WHERE username = ?", (session["username"],)).fetchall()
+    return jsonify({"success": True, "xp": xp_row["total"] if xp_row else 0, "solved": [row["challenge_id"] for row in solved_rows]})
+
+@app.route("/api/debug/reset", methods=["POST"])
+def reset_debug_progress():
+    username = session.get("username")
+    if not username:
+        return jsonify({"success": False, "message": "Sign in to reset Debug Lab practice."}), 401
+    expected_csrf = session.get("csrf_token", "")
+    supplied_csrf = request.headers.get("X-CSRF-Token", "")
+    if not expected_csrf or not secrets.compare_digest(expected_csrf, supplied_csrf):
+        return jsonify({"success": False, "message": "Session check failed. Refresh the page and try again."}), 403
+    data = json_data()
+    lang = data.get("language")
+    if not isinstance(lang, str) or lang not in DEBUG_CHALLENGES:
+        return jsonify({"success": False, "message": "Choose Python or C before resetting this lab."}), 400
+    challenge_ids = [challenge["id"] for challenge in DEBUG_CHALLENGES[lang]]
+    with get_db() as conn:
+        placeholders = ",".join("?" for _ in challenge_ids)
+        conn.execute(
+            f"DELETE FROM debug_solved_state WHERE username = ? AND challenge_id IN ({placeholders})",
+            (username, *challenge_ids),
+        )
+        conn.commit()
+    return jsonify({"success": True, "message": "This lab's answered questions were reset. Your XP was kept."})
 
 @app.route("/api/debug/solution", methods=["POST"])
 def get_debug_solution():
@@ -1628,6 +2330,10 @@ def submit_code():
             cursor = conn.execute(
                 "INSERT OR IGNORE INTO debug_progress (username, challenge_id, xp) VALUES (?, ?, ?)",
                 (session["username"], challenge_id, target["xp"]),
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO debug_solved_state (username, challenge_id) VALUES (?, ?)",
+                (session["username"], challenge_id),
             )
             awarded_xp = target["xp"] if cursor.rowcount else 0
             xp_row = conn.execute("SELECT COALESCE(SUM(xp), 0) AS total FROM debug_progress WHERE username = ?", (session["username"],)).fetchone()
@@ -1706,32 +2412,291 @@ def verify_vault_key():
 
 @app.route("/api/admin/delete-user/<target_user>", methods=["DELETE"])
 def delete_user(target_user):
-    if "username" not in session:
-        return jsonify({"success": False, "message": "Unauthorized"}), 401
-
-    current_user = session["username"]
-    if current_user != target_user:
-        return jsonify({"success": False, "message": "You can only delete your own account."}), 403
-
+    auth_error = require_admin_api()
+    if auth_error:
+        return auth_error
     with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE username = ?", (target_user,))
-        cursor.execute("DELETE FROM results WHERE username = ?", (target_user,))
-        cursor.execute("DELETE FROM user_progress WHERE username = ?", (target_user,))
-        cursor.execute("DELETE FROM sector_completions WHERE username = ?", (target_user,))
-        cursor.execute("DELETE FROM debug_progress WHERE username = ?", (target_user,))
-        cursor.execute("DELETE FROM active_quizzes WHERE username = ?", (target_user,))
+        target = conn.execute("SELECT role FROM users WHERE username = ?", (target_user,)).fetchone()
+        if not target:
+            return jsonify({"success": False, "message": "Account not found."}), 404
+        if target["role"] == "admin":
+            return jsonify({"success": False, "message": "Administrator accounts are protected."}), 403
+        delete_player_account(conn, target_user)
         conn.commit()
+    return jsonify({"success": True, "message": f"User '{target_user}' and their saved data were deleted."})
 
-    self_delete = (current_user == target_user)
-    if self_delete:
-        session.clear()
+def valid_csrf():
+    expected = session.get("csrf_token", "")
+    return bool(expected and secrets.compare_digest(request.headers.get("X-CSRF-Token", ""), expected))
 
-    return jsonify({
-        "success": True,
-        "message": f"User '{target_user}' successfully deleted.",
-        "self_delete": self_delete
-    })
+@app.route("/arena")
+def arena_page():
+    if "username" not in session:
+        return redirect(url_for("index"))
+    token = session.setdefault("csrf_token", secrets.token_urlsafe(32))
+    with get_db() as conn:
+        account = conn.execute(
+            "SELECT player_id FROM users WHERE username = ?", (session["username"],)
+        ).fetchone()
+    return render_template(
+        "arena.html",
+        csrf_token=token,
+        username=session["username"],
+        player_id=account["player_id"] if account else "—",
+    )
+
+@app.route("/api/arena/matchmake", methods=["POST"])
+def arena_matchmake():
+    username = session.get("username")
+    if not username:
+        return jsonify({"success": False, "message": "Sign in to enter the arena."}), 401
+    if not valid_csrf():
+        return jsonify({"success": False, "message": "Refresh the arena and try again."}), 403
+    with get_db() as conn:
+        conn.execute("DELETE FROM arena_queue WHERE queued_at < datetime('now','-3 minutes') AND match_id IS NULL")
+        own = conn.execute("SELECT q.match_id,m.state FROM arena_queue q LEFT JOIN arena_matches m ON m.match_id=q.match_id WHERE q.username=?", (username,)).fetchone()
+        if own and own["match_id"] and own["state"] != "complete":
+            return jsonify({"success": True, "state": "matched", "match_id": own["match_id"]})
+        if own and own["state"] == "complete":
+            conn.execute("DELETE FROM arena_queue WHERE username=?", (username,))
+        waiting = conn.execute("SELECT username,challenge_id FROM arena_queue WHERE username<>? AND match_id IS NULL ORDER BY queued_at LIMIT 1", (username,)).fetchone()
+        if waiting:
+            match_id = secrets.token_urlsafe(12)
+            challenge_id = waiting["challenge_id"]
+            conn.execute("INSERT INTO arena_matches(match_id,player_one,player_two,challenge_id) VALUES(?,?,?,?)", (match_id, waiting["username"], username, challenge_id))
+            conn.execute("UPDATE arena_queue SET match_id=? WHERE username IN (?,?)", (match_id, waiting["username"], username))
+            conn.execute("INSERT INTO arena_queue(username,match_id,challenge_id) VALUES(?,?,?) ON CONFLICT(username) DO UPDATE SET match_id=excluded.match_id,challenge_id=excluded.challenge_id,queued_at=CURRENT_TIMESTAMP", (username,match_id,challenge_id))
+            conn.commit()
+            return jsonify({"success": True, "state": "matched", "match_id": match_id})
+        challenge_id = random.choice(DEBUG_CHALLENGES["python"])["id"]
+        conn.execute("INSERT INTO arena_queue(username,challenge_id) VALUES(?,?) ON CONFLICT(username) DO UPDATE SET challenge_id=excluded.challenge_id,queued_at=CURRENT_TIMESTAMP,match_id=NULL", (username, challenge_id))
+        conn.commit()
+    return jsonify({"success": True, "state": "searching"})
+
+@app.route("/api/arena/ai/start", methods=["POST"])
+def arena_ai_start():
+    username = session.get("username")
+    if not username:
+        return jsonify({"success": False, "message": "Sign in to enter the arena."}), 401
+    if not valid_csrf():
+        return jsonify({"success": False, "message": "Refresh the arena and try again."}), 403
+    with get_db() as conn:
+        current = conn.execute(
+            "SELECT q.match_id, m.state, m.player_two FROM arena_queue q LEFT JOIN arena_matches m ON m.match_id=q.match_id WHERE q.username=?",
+            (username,),
+        ).fetchone()
+        if current and current["match_id"] and current["state"] in ("active", "complete"):
+            if current["state"] == "active":
+                if current["player_two"] == "__CIPHER_BOT__":
+                    return jsonify({
+                        "success": True,
+                        "state": "active",
+                        "match_id": current["match_id"],
+                        "opponent": "Cipher Bot",
+                    })
+                return jsonify({"success": False, "message": "Leave your live-player duel before starting a bot match."}), 409
+            conn.execute("DELETE FROM arena_queue WHERE username=?", (username,))
+        elif current:
+            conn.execute("DELETE FROM arena_queue WHERE username=?", (username,))
+        challenge_id = random.choice(DEBUG_CHALLENGES["python"])["id"]
+        match_id = secrets.token_urlsafe(12)
+        conn.execute(
+            "INSERT INTO arena_matches(match_id,player_one,player_two,challenge_id) VALUES(?,?,?,?)",
+            (match_id, username, "__CIPHER_BOT__", challenge_id),
+        )
+        conn.execute(
+            "INSERT INTO arena_queue(username,match_id,challenge_id) VALUES(?,?,?)",
+            (username, match_id, challenge_id),
+        )
+        conn.commit()
+    session.pop("arena_verified_match", None)
+    return jsonify({"success": True, "state": "active", "match_id": match_id, "opponent": "Cipher Bot"})
+
+@app.route("/api/arena/status")
+def arena_status():
+    username = session.get("username")
+    if not username: return jsonify({"success": False, "message": "Sign in required."}), 401
+    with get_db() as conn:
+        row = conn.execute("SELECT q.match_id,q.queued_at,m.player_one,m.player_two,m.challenge_id,m.state,m.progress_one,m.progress_two,m.glitch_until,m.hack_by,m.created_at FROM arena_queue q LEFT JOIN arena_matches m ON m.match_id=q.match_id WHERE q.username=?", (username,)).fetchone()
+    if not row: return jsonify({"success": True,"state":"idle"})
+    if not row["match_id"]: return jsonify({"success": True,"state":"searching"})
+    if row["player_two"] == "__CIPHER_BOT__":
+        try:
+            started_at = datetime.datetime.fromisoformat(str(row["created_at"]))
+            # SQLite CURRENT_TIMESTAMP is UTC; compare in UTC to avoid local-zone
+            # offsets making the bot appear to finish immediately.
+            utc_now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+            elapsed = max(0, (utc_now - started_at).total_seconds())
+        except (TypeError, ValueError):
+            elapsed = 0
+        bot_duration = 45 + int(hashlib.sha256(row["challenge_id"].encode()).hexdigest()[:2], 16) % 26
+        progress_value = min(1.0, elapsed / bot_duration)
+        bot_done = progress_value >= 1.0
+        bot_progress = {"lines": int(progress_value * 7), "tests": int(progress_value >= .65), "submitted": bot_done}
+        if bot_done and row["state"] == "active":
+            with get_db() as conn:
+                conn.execute("UPDATE arena_matches SET progress_two=?,state='complete' WHERE match_id=? AND state='active'",
+                             (json.dumps(bot_progress), row["match_id"]))
+                conn.commit()
+            row = dict(row)
+            row["state"] = "complete"
+            row["progress_two"] = json.dumps(bot_progress)
+    own_key = "progress_one" if username == row["player_one"] else "progress_two"
+    other_key = "progress_two" if own_key == "progress_one" else "progress_one"
+    own, opponent = json.loads(row[own_key] or "{}"), json.loads(row[other_key] or "{}")
+    if row["player_two"] == "__CIPHER_BOT__":
+        opponent_name = "Cipher Bot"
+    else:
+        other_player = row["player_two"] if username == row["player_one"] else row["player_one"]
+        opponent_name = "Agent " + hashlib.sha256(other_player.encode()).hexdigest()[:4].upper()
+    if row["state"] == "complete":
+        winner = username if own.get("submitted") else opponent_name if opponent.get("submitted") else "Duel ended"
+    else:
+        winner = None
+    response = {"success": True,"state":row["state"],"match_id":row["match_id"],"challenge_id":row["challenge_id"],"opponent":opponent_name,"own":own,"opponent_progress":{"lines":opponent.get("lines",0),"tests":opponent.get("tests",0),"submitted":opponent.get("submitted",False)},"glitched":row["hack_by"] != username and row["glitch_until"] > time.time(),"winner":winner}
+    if row["state"] == "complete" and not own.get("submitted") and opponent.get("submitted"):
+        challenge = next((item for item in DEBUG_CHALLENGES["python"] if item["id"] == row["challenge_id"]), None)
+        solution = DEBUG_SOLUTIONS.get(row["challenge_id"])
+        if challenge and solution:
+            response["solution_review"] = {"code":solution, "explanation":challenge.get("hints", ["Review the condition and expected result."])[-1]}
+    return jsonify(response)
+
+@app.route("/api/arena/run",methods=["POST"])
+def arena_run():
+    username=session.get("username"); data=json_data(); code=data.get("code","")
+    if not username: return jsonify({"success":False,"message":"Sign in required."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    if not isinstance(code,str) or len(code)>12000: return jsonify({"success":False,"message":"Code must be 12,000 characters or fewer."}),400
+    with get_db() as conn: match=conn.execute("SELECT m.match_id,m.challenge_id FROM arena_matches m JOIN arena_queue q ON q.match_id=m.match_id WHERE q.username=? AND m.state='active'",(username,)).fetchone()
+    challenge=next((c for c in DEBUG_CHALLENGES['python'] if match and c['id']==match['challenge_id']),None)
+    if not challenge:return jsonify({"success":False,"message":"No active duel challenge."}),404
+    if rate_limited(CODE_ATTEMPTS,f"arena:{username}",20,60):return jsonify({"success":False,"message":"Runner limit reached. Wait and retry."}),429
+    result=run_python_code(code)
+    passed=result['success'] and result['stdout'].strip()==challenge['expectedOutput'].strip()
+    if passed: session['arena_verified_match']=match['match_id']
+    else: session.pop('arena_verified_match',None)
+    return jsonify({"success":True,"passed":passed,"stdout":result['stdout'],"stderr":result['stderr'],"message":"All duel checks passed." if passed else "Output does not match the duel target."})
+
+@app.route("/api/arena/progress", methods=["POST"])
+def arena_progress():
+    username=session.get("username"); data=json_data()
+    if not username: return jsonify({"success":False,"message":"Sign in required."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    lines=max(0,min(500,int(data.get("lines",0)))) if str(data.get("lines",0)).isdigit() else 0
+    tests=0
+    submitted=False
+    with get_db() as conn:
+        row=conn.execute("SELECT m.* FROM arena_matches m JOIN arena_queue q ON q.match_id=m.match_id WHERE q.username=? AND m.state='active'",(username,)).fetchone()
+        if not row: return jsonify({"success":False,"message":"No active match."}),404
+        submitted=bool(data.get("submitted",False) and session.get('arena_verified_match')==row['match_id'])
+        tests=1 if session.get('arena_verified_match')==row['match_id'] else 0
+        own_key="progress_one" if username==row["player_one"] else "progress_two"
+        conn.execute(f"UPDATE arena_matches SET {own_key}=?,state=? WHERE match_id=?",(json.dumps({"lines":lines,"tests":tests,"submitted":submitted}),"complete" if submitted else "active",row["match_id"]))
+        conn.commit()
+    return jsonify({"success":True,"message":"Progress synced."})
+
+@app.route("/api/arena/hack", methods=["POST"])
+def arena_hack():
+    username=session.get("username")
+    if not username: return jsonify({"success":False,"message":"Sign in required."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    with get_db() as conn:
+        row=conn.execute("SELECT m.match_id,m.hack_by,m.player_two FROM arena_matches m JOIN arena_queue q ON q.match_id=m.match_id WHERE q.username=? AND m.state='active'",(username,)).fetchone()
+        if not row: return jsonify({"success":False,"message":"No active duel."}),404
+        if row["hack_by"]: return jsonify({"success":False,"message":"Distractor Hack has already been used."}),409
+        if row["player_two"] == "__CIPHER_BOT__":
+            conn.execute("UPDATE arena_matches SET hack_by=?,glitch_until=?,created_at=datetime(created_at,'+4 seconds') WHERE match_id=?",(username,time.time()+4,row["match_id"]))
+            message = "Cipher Bot disrupted. Four seconds have been added to its timer."
+        else:
+            conn.execute("UPDATE arena_matches SET hack_by=?,glitch_until=? WHERE match_id=?",(username,time.time()+4,row["match_id"]))
+            message = "Distractor deployed. Your live opponent's screen will glitch for four seconds."
+        conn.commit()
+    return jsonify({"success":True,"message":message})
+
+@app.route("/api/arena/leave",methods=["POST"])
+def arena_leave():
+    if not session.get("username"): return jsonify({"success":False,"message":"Sign in required."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    with get_db() as conn: conn.execute("DELETE FROM arena_queue WHERE username=?",(session["username"],));conn.commit()
+    return jsonify({"success":True})
+
+@app.route("/community")
+def community_page():
+    if "username" not in session: return redirect(url_for("index"))
+    csrf=session.setdefault("csrf_token",secrets.token_urlsafe(32))
+    with get_db() as conn:
+        rows=conn.execute("SELECT id,username,title,language,difficulty,description,votes,created_at FROM community_puzzles WHERE status='approved' ORDER BY votes DESC,created_at DESC LIMIT 100").fetchall()
+        player=conn.execute("SELECT role FROM users WHERE username=?",(session["username"],)).fetchone()
+    return render_template("community.html", puzzles=rows, csrf_token=csrf, is_admin=bool(player and player["role"]=="admin"))
+
+@app.route("/api/community/submit",methods=["POST"])
+def community_submit():
+    if "username" not in session: return jsonify({"success":False,"message":"Sign in to publish a puzzle."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Refresh and try again."}),403
+    data=json_data(); fields={key:data.get(key,"") for key in ("title","language","description","starter_code","expected_output","difficulty")}; solution=data.get("solution_code","")
+    if fields["language"] not in ("python","c") or any(not isinstance(fields[k],str) for k in fields): return jsonify({"success":False,"message":"Check the puzzle fields."}),400
+    for k,v in fields.items(): fields[k]=v.strip()
+    if fields["difficulty"] not in ("Starter","Core","Challenge"):fields["difficulty"]="Core"
+    if not isinstance(solution,str) or not solution.strip() or len(solution)>12000:return jsonify({"success":False,"message":"Add a reference solution so the test suite can verify your puzzle."}),400
+    if not fields["title"] or len(fields["title"])>80 or not fields["description"] or len(fields["description"])>500 or not fields["starter_code"] or len(fields["starter_code"])>12000 or len(fields["expected_output"])>500: return jsonify({"success":False,"message":"Add a title, description, starter code, and concise expected output."}),400
+    tested=run_python_code(solution) if fields["language"]=="python" else run_c_code(solution)
+    if not tested["success"] or tested["stdout"].strip()!=fields["expected_output"].strip():return jsonify({"success":False,"message":"Reference solution failed the output check. Correct it before submitting."}),400
+    with get_db() as conn: conn.execute("INSERT INTO community_puzzles(username,title,language,description,starter_code,expected_output,difficulty,status) VALUES(?,?,?,?,?,?,?,?)",(session["username"],fields["title"],fields["language"],fields["description"],fields["starter_code"],fields["expected_output"],fields["difficulty"],"approved" if is_current_admin() else "pending")); conn.commit()
+    return jsonify({"success":True,"message":"Puzzle submitted for community review."})
+
+@app.route("/api/community/<int:puzzle_id>/vote",methods=["POST"])
+def community_vote(puzzle_id):
+    if "username" not in session: return jsonify({"success":False,"message":"Sign in to vote."}),401
+    if not valid_csrf(): return jsonify({"success":False,"message":"Refresh and try again."}),403
+    with get_db() as conn:
+        puzzle=conn.execute("SELECT 1 FROM community_puzzles WHERE id=? AND status='approved'",(puzzle_id,)).fetchone()
+        if not puzzle:return jsonify({"success":False,"message":"Puzzle not found."}),404
+        vote=conn.execute("INSERT OR IGNORE INTO community_votes(puzzle_id,username) VALUES(?,?)",(puzzle_id,session['username']))
+        if vote.rowcount:conn.execute("UPDATE community_puzzles SET votes=votes+1 WHERE id=?",(puzzle_id,))
+        conn.commit()
+    return jsonify({"success":True,"message":"Vote counted." if vote.rowcount else "You already voted for this puzzle."})
+
+@app.route("/api/announcement",methods=["GET","POST","DELETE"])
+def announcement_api():
+    if request.method=="GET":
+        with get_db() as conn: row=conn.execute("SELECT message FROM site_announcements WHERE id=1").fetchone()
+        return jsonify({"success":True,"message":row["message"] if row else ""})
+    if not is_current_admin(): return jsonify({"success":False,"message":"Administrator access required."}),403
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    if request.method=="DELETE":
+        with get_db() as conn:
+            conn.execute("DELETE FROM site_announcements WHERE id=1")
+            conn.commit()
+        return jsonify({"success":True,"message":"Announcement deleted."})
+    message=json_data().get("message","")
+    if not isinstance(message,str) or not message.strip() or len(message.strip())>220: return jsonify({"success":False,"message":"Enter an announcement of 1–220 characters."}),400
+    with get_db() as conn:
+        conn.execute("INSERT INTO site_announcements(id,message) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET message=excluded.message,updated_at=CURRENT_TIMESTAMP",(message.strip(),));conn.commit()
+    return jsonify({"success":True,"message":"Announcement published."})
+
+@app.route("/api/admin/community/<int:puzzle_id>/<action>",methods=["POST"])
+def admin_moderate_puzzle(puzzle_id,action):
+    if not is_current_admin(): return jsonify({"success":False,"message":"Administrator access required."}),403
+    if not valid_csrf(): return jsonify({"success":False,"message":"Session check failed."}),403
+    if action not in ("approve","reject"): return jsonify({"success":False,"message":"Unknown action."}),400
+    with get_db() as conn:
+        if action=="approve": cur=conn.execute("UPDATE community_puzzles SET status='approved' WHERE id=?",(puzzle_id,))
+        else: cur=conn.execute("DELETE FROM community_puzzles WHERE id=?",(puzzle_id,))
+        conn.commit()
+    if not cur.rowcount:return jsonify({"success":False,"message":"Puzzle not found."}),404
+    return jsonify({"success":True,"message":"Puzzle approved." if action=="approve" else "Puzzle removed."})
+
+@app.route("/api/admin/ban/<player_id>",methods=["POST"])
+def admin_toggle_ban(player_id):
+    auth_error=require_admin_api()
+    if auth_error:return auth_error
+    banned=bool(json_data().get("banned"))
+    with get_db() as conn:
+        row=conn.execute("SELECT username,role FROM users WHERE player_id=?",(player_id,)).fetchone()
+        if not row:return jsonify({"success":False,"message":"Account not found."}),404
+        if row["role"]=="admin":return jsonify({"success":False,"message":"Admin accounts cannot be suspended here."}),403
+        conn.execute("UPDATE users SET is_banned=? WHERE player_id=?",(1 if banned else 0,player_id));conn.commit()
+    return jsonify({"success":True,"message":"Account suspended." if banned else "Account restored."})
 
 @app.route("/logout")
 def logout():

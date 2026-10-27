@@ -1,0 +1,47 @@
+{% if shell_player %}
+<div class="campus-hud" role="banner">
+    <button class="campus-hud-menu" id="campusNavToggle" type="button" aria-label="Toggle Campus Escape navigation" aria-controls="campusRail" aria-expanded="true">☰</button>
+    <a class="campus-hud-brand" href="/map"><span class="campus-brand-mark">✦</span><span>CAMPUS <b>ESCAPE</b></span></a>
+    <div class="campus-hud-player" aria-label="Player status">
+        <a class="campus-hud-identity campus-hud-account-link" href="/dashboard" aria-label="Open dashboard for {{ shell_player.username }}" title="Open dashboard · {{ shell_player.username }} · Player ID {{ shell_player.player_id }}">
+            <span class="campus-hud-name">{{ shell_player.username }}</span>
+            <small class="campus-hud-id">ID {{ shell_player.player_id }}</small>
+        </a>
+        <span class="campus-hud-stat"><b>{{ shell_player.xp }}</b><small>XP</small></span>
+        <span class="campus-hud-rank"><small>RANK</small><b>{{ shell_player.rank }}</b></span>
+        <span class="campus-hud-stat campus-hud-score"><b>{{ shell_player.score }}</b><small>PTS</small></span>
+    </div>
+</div>
+<button class="campus-rail-scrim" id="campusRailScrim" type="button" aria-label="Close navigation" hidden></button>
+<aside class="campus-rail" id="campusRail" aria-label="Main navigation">
+    <nav class="campus-rail-main">
+        <a href="/dashboard" aria-label="Dashboard" title="Dashboard" {% if request.path == '/dashboard' %}aria-current="page"{% endif %}><span class="rail-icon">◉</span><small>Dashboard</small></a>
+        <a href="/map" aria-label="Sector Map" title="Sector Map" {% if request.path == '/map' %}aria-current="page"{% endif %}><span class="rail-icon">⌖</span><small>Sector Map</small></a>
+        <span class="rail-section-label">EXTRA CHALLENGES</span>
+        <a href="/debug" aria-label="Debugging Lab" title="Debugging Lab" {% if request.path.startswith('/debug') %}aria-current="page"{% endif %}><span class="rail-icon">⌘</span><small>Debugging Lab</small></a>
+        <a href="/arena" aria-label="PvP with AI Bot" title="PvP with AI Bot" {% if request.path == '/arena' %}aria-current="page"{% endif %}><span class="rail-icon">⚔</span><small>PvP with AI Bot</small></a>
+        <a href="/daily-challenge" aria-label="Daily Challenge" title="Daily Challenge" {% if request.path == '/daily-challenge' %}aria-current="page"{% endif %}><span class="rail-icon">◷</span><small>Daily Challenge</small></a>
+        <span class="rail-section-label">CAMPUS</span>
+        <a href="/leaderboard" {% if request.path == '/leaderboard' %}aria-current="page"{% endif %}><span class="rail-icon">▥</span><small>Leaderboard</small></a>
+        <a href="/feedback" {% if request.path == '/feedback' %}aria-current="page"{% endif %}><span class="rail-icon">?</span><small>Help &amp; Feedback</small></a>
+        {% if shell_player.role == 'admin' %}<a class="admin-console-link" href="/admin" aria-label="Admin Console{% if shell_admin_notifications %}, {{ shell_admin_notifications }} new notifications{% endif %}" title="Admin Console{% if shell_admin_notifications %} · {{ shell_admin_notifications }} new notifications{% endif %}" {% if request.path == '/admin' %}aria-current="page"{% endif %}><span class="rail-icon">⚙</span><small>Admin Console</small><span class="admin-notification-badge" aria-hidden="true" {% if not shell_admin_notifications %}hidden{% endif %}>{{ shell_admin_notifications }}{% if shell_admin_notifications == 99 %}+{% endif %}</span></a>{% endif %}
+    </nav>
+    <div class="campus-rail-foot">
+        <button type="button" data-audio-toggle onclick="toggleAudio()" aria-label="Toggle sound">♪<small>Sound</small></button>
+        <a href="/logout" aria-label="Log out"><span class="rail-icon">↪</span><small>Exit</small></a>
+    </div>
+</aside>
+<nav class="campus-mobile-dock" aria-label="Quick navigation">
+    <a href="/dashboard" {% if request.path == '/dashboard' %}aria-current="page"{% endif %}><span>◉</span><small>Dashboard</small></a>
+    <a href="/map" {% if request.path == '/map' %}aria-current="page"{% endif %}><span>⌖</span><small>Map</small></a>
+    <a href="/debug" {% if request.path.startswith('/debug') %}aria-current="page"{% endif %}><span>⌘</span><small>Debug</small></a>
+    <a href="/daily-challenge" {% if request.path == '/daily-challenge' %}aria-current="page"{% endif %}><span>◷</span><small>Daily</small></a>
+    <a href="/arena" {% if request.path == '/arena' %}aria-current="page"{% endif %}><span>⚔</span><small>PvP</small></a>
+</nav>
+<script>document.documentElement.classList.add('campus-shell-active');</script>
+<script src="{{ url_for('static', filename='sound.js') }}"></script>
+<script src="{{ url_for('static', filename='navigation-shell.js') }}" defer></script>
+{% if shell_player.role == 'admin' %}<script>
+(()=>{const link=document.querySelector('.admin-console-link');if(!link)return;const badge=link.querySelector('.admin-notification-badge');async function refreshAdminNotices(){try{const response=await fetch('/api/admin/notifications',{cache:'no-store',headers:{'Accept':'application/json'}});if(!response.ok)return;const data=await response.json();if(!data.success)return;const count=Number(data.count)||0;badge.textContent=count>=99?'99+':String(count);badge.hidden=count===0;link.title=count?`Admin Console · ${count} new notifications`:'Admin Console';link.setAttribute('aria-label',count?`Admin Console, ${count} new notifications`:'Admin Console');}catch(_){}}refreshAdminNotices();window.setInterval(()=>{if(!document.hidden)refreshAdminNotices()},30000)})();
+</script>{% endif %}
+{% endif %}

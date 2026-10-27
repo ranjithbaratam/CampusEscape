@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>PvP Arena · Campus Escape</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='cyber-upgrade.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
+    <style>
+        .arena-shell { width:min(1080px,100%); max-width:none; padding:1rem clamp(.85rem,3vw,2rem) 3rem; }
+        .arena-top { position:sticky; top:0; z-index:30; display:flex; justify-content:space-between; align-items:center; gap:1rem; min-height:64px; padding:.65rem clamp(.85rem,3vw,2rem); border-bottom:1px solid rgba(255,255,255,.08); background:rgba(2,6,23,.92); backdrop-filter:blur(16px); }
+        .arena-account { display:flex; align-items:center; justify-content:flex-end; gap:.6rem; flex-wrap:wrap; }
+        .arena-map-link { display:inline-flex; align-items:center; min-height:40px; padding:.5rem .8rem; border:1px solid rgba(56,189,248,.32); border-radius:10px; color:#bae6fd; background:rgba(8,47,73,.48); font-size:.76rem; font-weight:800; text-decoration:none; }
+        .arena-identity { display:grid; gap:.1rem; padding:.35rem .65rem; border:1px solid rgba(148,163,184,.16); border-radius:10px; background:rgba(15,23,42,.65); text-align:right; }
+        .arena-identity strong { color:#e2e8f0; font-size:.74rem; }
+        .arena-identity span { color:#94a3b8; font:500 .62rem 'Fira Code',monospace; }
+        .arena-intro { display:grid; grid-template-columns:minmax(0,1fr) 210px; align-items:center; gap:1rem; margin:1rem 0; padding:clamp(1rem,2.5vw,1.7rem); border-radius:20px; animation:arena-enter .45s cubic-bezier(.2,.75,.25,1) both; }
+        .arena-intro h1 { font-size:clamp(1.5rem,3vw,2.15rem); letter-spacing:-.035em; }
+        .arena-intro-copy { max-width:62ch; margin-top:.35rem; font-size:.8rem!important; line-height:1.55!important; }
+        .arena-modes { display:flex; gap:.55rem; flex-wrap:wrap; margin-top:.75rem; }
+        .arena-mode { min-height:48px; padding:.7rem .95rem; }
+        .arena-mode-ai { border-color:rgba(192,132,252,.5); background:linear-gradient(120deg,#6b21a8,#4338ca); }
+        .arena-instructions { margin-top:.7rem; color:#aabbd0; font-size:.74rem; }
+        .arena-instructions summary { width:fit-content; color:#7dd3fc; font-weight:800; cursor:pointer; }
+        .arena-instructions ol { margin:.5rem 0 0 1.1rem; line-height:1.65; }
+        #arenaStatus { margin:.5rem 0 0; color:#bfdbfe; font-size:.76rem; font-weight:700; }
+        .arena-metrics { grid-template-columns:1fr; min-width:0; }
+        .arena-metrics .cyber-glass { padding:.75rem .85rem; border-radius:13px; }
+        .arena-metrics b { font-size:1rem; }
+        .arena-workspace { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(250px,.75fr); align-items:start; gap:.85rem; }
+        .arena-workspace .player-card { padding:1rem; border-radius:16px; animation:arena-enter .48s .08s cubic-bezier(.2,.75,.25,1) both; }
+        .arena-workspace .player-card:nth-child(2) { animation-delay:.16s; }
+        .player-card h2 { margin:.35rem 0 .6rem; font-size:1.12rem; }
+        .arena-task { margin:.55rem 0 .65rem; padding:.75rem .85rem; border:1px solid rgba(56,189,248,.2); border-left:3px solid #38bdf8; border-radius:10px; background:rgba(2,12,28,.58); color:#dceaf5; font-size:.82rem; line-height:1.55; }
+        .arena-task-label { display:block; margin-bottom:.22rem; color:#7dd3fc; font-size:.62rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+        .arena-workspace label { display:block; margin:.65rem 0 .35rem; color:#cbd5e1; font-size:.75rem; font-weight:700; }
+        #arenaCode { min-height:210px; resize:vertical; }
+        .arena-output { min-height:56px; max-height:130px; overflow:auto; }
+        .arena-legend { display:flex; gap:.7rem; flex-wrap:wrap; color:#9fb1c5; font-size:.72rem; }
+        .arena-legend b { color:#e2e8f0; }
+        .arena-actions button:disabled,.arena-mode:disabled { opacity:.55; cursor:wait; }
+        .arena-stat { padding:.55rem 0; }
+        .arena-clean-note { margin:.6rem 0 0; font-size:.72rem; line-height:1.5; }
+        .duel-result { margin:0 0 .85rem; padding:1rem 1.1rem; border:1px solid; border-radius:14px; text-align:center; animation:arena-enter .3s ease-out both; }
+        .duel-result h2 { margin:0 0 .25rem; font-size:1.35rem; letter-spacing:.04em; }
+        .duel-result p { margin:0; color:#dbeafe; font-size:.82rem; }
+        .duel-result.win { border-color:rgba(52,211,153,.6); background:linear-gradient(120deg,rgba(6,78,59,.68),rgba(15,23,42,.88)); color:#6ee7b7; }
+        .duel-result.loss { border-color:rgba(251,113,133,.55); background:linear-gradient(120deg,rgba(136,19,55,.48),rgba(15,23,42,.9)); color:#fda4af; }
+        .duel-result.draw { border-color:rgba(251,191,36,.5); background:linear-gradient(120deg,rgba(120,53,15,.42),rgba(15,23,42,.9)); color:#fcd34d; }
+        .duel-review { margin-top:.8rem; padding:.8rem; border:1px solid rgba(148,163,184,.18); border-radius:10px; background:rgba(2,6,23,.55); text-align:left; }
+        .duel-review h3 { margin:0 0 .35rem; color:#e2e8f0; font-size:.9rem; }
+        .duel-review p { margin:.35rem 0 .6rem; color:#cbd5e1; }
+        .duel-review pre { max-height:260px; overflow:auto; margin:0; padding:.7rem; border-radius:8px; background:#020617; color:#a5f3fc; font:.74rem/1.5 'Fira Code',monospace; white-space:pre-wrap; }
+        .arena-mode:active,.arena-map-link:active { transform:scale(.98); }
+        @keyframes arena-enter { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        [hidden] { display:none!important; }
+        @media(max-width:760px) { .arena-intro,.arena-workspace { grid-template-columns:1fr; } .arena-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .arena-top { min-height:58px; } }
+        @media(max-width:480px) { .arena-top { gap:.5rem; padding-inline:.65rem; } .arena-brand { font-size:.83rem; } .arena-identity { padding:.3rem .45rem; } .arena-identity strong { font-size:.68rem; } .arena-identity span { font-size:.56rem; } .arena-shell { padding-inline:.65rem; } #arenaCode { min-height:190px; } }
+        @media(prefers-reduced-motion:reduce) { .arena-intro,.arena-workspace .player-card { animation:none; } }
+    </style>
+</head>
+<body class="cyber-page">{% include "_global_nav.html" %}
+    <header class="arena-top">
+            <a class="cyber-brand" href="/map">CAMPUS ESCAPE <span>ARENA</span></a>
+            <div class="arena-account">
+                <a class="arena-map-link" href="/map">← Map</a>
+                <span class="arena-identity"><strong>{{ username }}</strong><span>ID · {{ player_id }}</span></span>
+            </div>
+    </header>
+    <main class="cyber-shell arena-shell">
+
+        <section class="cyber-hero arena-intro">
+            <div>
+                <span class="cyber-kicker">CODE DUEL · PLAY YOUR WAY</span>
+                <h1>Race to fix the code.</h1>
+                <p class="arena-intro-copy">Choose a live opponent or play solo against Cipher Bot. The task and run results appear in your editor; only progress is shared with a live opponent.</p>
+                <div class="arena-modes">
+                    <button class="cyber-button arena-mode" id="humanButton" type="button" onclick="startDuel('human')">Find a player</button>
+                    <button class="cyber-button arena-mode arena-mode-ai" id="aiButton" type="button" onclick="startDuel('ai')">Play with Cipher Bot</button>
+                    <button class="cyber-button ghost arena-mode" id="cancelButton" type="button" onclick="leaveArena()" hidden>Leave duel</button>
+                </div>
+                <p id="arenaStatus" role="status" aria-live="polite">Choose a mode to begin.</p>
+                <details class="arena-instructions">
+                    <summary>How to play</summary>
+                    <ol>
+                        <li>For a quick solo round, choose <b>Play with Cipher Bot</b>. Choose <b>Find a player</b> to wait in the live queue; leave the queue any time.</li>
+                        <li>Read the objective above the editor, edit the starter code, and select <b>Run code</b> to check your output.</li>
+                        <li>When all checks pass, select <b>Submit fix</b>. The first correct submission wins.</li>
+                        <li>Use <b>Distractor hack</b> once per duel. It briefly disrupts a live opponent or adds four seconds to the bot's timer.</li>
+                    </ol>
+                </details>
+            </div>
+            <div class="cyber-metrics arena-metrics">
+                <div class="cyber-glass"><span>Speed bonus</span><b id="speedBonus">1.0×</b></div>
+                <div class="cyber-glass"><span>Your test status</span><b id="accuracyBonus">—</b></div>
+            </div>
+        </section>
+
+        <section class="arena-workspace" aria-label="Code duel workspace">
+            <article class="cyber-glass player-card">
+                <section id="duelResult" class="duel-result" role="status" aria-live="assertive" hidden><h2 id="duelResultTitle"></h2><p id="duelResultMessage"></p><div id="duelReview" class="duel-review" hidden><h3>Correct fix · why it works</h3><p id="duelReviewExplanation"></p><pre id="duelReviewCode"></pre></div></section>
+                <span class="cyber-kicker">YOU · {{ username }}</span>
+                <h2>Your editor</h2>
+                <p id="challengeTitle" class="cyber-note">Start a duel to load a challenge.</p>
+                <div class="arena-task"><span class="arena-task-label">Your objective</span><span id="challengeDescription" role="status" aria-live="polite">Choose a game mode to load the task instructions.</span></div>
+                <label for="arenaCode">Python code</label>
+                <textarea id="arenaCode" spellcheck="false" aria-label="Your Python duel code" disabled># Start a duel to load the code</textarea>
+                <div class="cyber-actions arena-actions">
+                    <button class="cyber-button" id="runButton" type="button" onclick="runArenaCode()" disabled>Run code</button>
+                    <button class="cyber-button success" id="submitButton" type="button" onclick="submitArena()" disabled>Submit fix</button>
+                    <button class="cyber-button violet" id="hackButton" type="button" onclick="distractorHack()" disabled>Distractor hack</button>
+                </div>
+                <div class="arena-legend"><span>Lines written: <b id="myLines">0</b></span><span>Tests passed: <b id="myTests">0</b></span></div>
+                <pre id="arenaOutput" class="cyber-terminal arena-output" role="status" aria-live="polite">Your output will appear here.</pre>
+            </article>
+            <article class="cyber-glass player-card" aria-labelledby="opponentName">
+                <span class="cyber-kicker">OPPONENT PROGRESS</span>
+                <h2 id="opponentName">Waiting for a duel</h2>
+                <div class="ghost-editor" id="ghostEditor" aria-label="Opponent code hidden; progress only">
+                    <span>01  ▪ ▪ ▪ ▪ ▪</span><span>02  ▪ ▪ ▪ ▪</span><span>03  ▪ ▪ ▪ ▪ ▪ ▪</span><span>04  ▪ ▪ ▪</span>
+                </div>
+                <div class="arena-stat"><span>Lines written</span><b id="opponentLines">0</b></div>
+                <div class="arena-stat"><span>Tests passed</span><b id="opponentTests">0</b></div>
+                <p id="opponentNote" class="cyber-note arena-clean-note">Only progress is shared. Opponent code stays private.</p>
+            </article>
+        </section>
+    </main>
+    <script>
+        const token = {{ csrf_token|tojson }};
+        let pollTimer = null, startedAt = Date.now(), activeMatch = false, glitchActive = false, matchMode = '';
+        const byId = id => document.getElementById(id);
+        async function arenaApi(url, method = 'GET', body = {}) {
+            const response = await fetch(url, {method, headers:{'Content-Type':'application/json','X-CSRF-Token':token}, ...(method === 'POST' ? {body:JSON.stringify(body)} : {})});
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Arena request failed.');
+            return data;
+        }
+        function setStatus(message) { byId('arenaStatus').textContent = message; }
+        function clearDuelResult() { byId('duelResult').hidden = true; byId('duelResult').className = 'duel-result'; byId('duelReview').hidden = true; }
+        function showDuelResult(data) {
+            const won = Boolean(data.own?.submitted);
+            const lost = Boolean(data.opponent_progress?.submitted);
+            const kind = won ? 'win' : lost ? 'loss' : 'draw';
+            const title = won ? '🏆 YOU WIN' : lost ? 'ROUND LOST' : 'DRAW';
+            const message = won ? `Your fix beat ${data.opponent || 'your opponent'} to the finish.` : lost ? `${data.opponent || 'Your opponent'} completed the challenge first. Try another round.` : 'The duel ended without a verified submission.';
+            byId('duelResult').className = `duel-result ${kind}`;
+            byId('duelResultTitle').textContent = title;
+            byId('duelResultMessage').textContent = message;
+            if (kind === 'loss' && data.solution_review) {
+                byId('duelReviewExplanation').textContent = data.solution_review.explanation;
+                byId('duelReviewCode').textContent = data.solution_review.code;
+                byId('duelReview').hidden = false;
+            }
+            byId('duelResult').hidden = false;
+        }
+        function setActionAvailability(enabled) {
+            byId('arenaCode').disabled = !enabled;
+            byId('runButton').disabled = !enabled;
+            byId('submitButton').disabled = !enabled;
+            byId('hackButton').disabled = !enabled;
+        }
+        async function startDuel(mode) {
+            clearInterval(pollTimer);
+            clearDuelResult();
+            activeMatch = false;
+            matchMode = mode;
+            setActionAvailability(false);
+            byId('humanButton').disabled = true;
+            byId('aiButton').disabled = true;
+            byId('arenaCode').dataset.loaded = '';
+            byId('arenaCode').value = '# Loading challenge…';
+            byId('challengeDescription').textContent = 'Loading the task instructions…';
+            byId('arenaOutput').textContent = 'Waiting for a challenge…';
+            startedAt = Date.now();
+            try {
+                const data = await arenaApi(mode === 'ai' ? '/api/arena/ai/start' : '/api/arena/matchmake', 'POST');
+                matchMode = data.opponent === 'Cipher Bot' || mode === 'ai' ? 'ai' : 'human';
+                setStatus(data.state === 'searching' ? 'Looking for a live player. You can leave the queue anytime.' : mode === 'ai' ? 'Cipher Bot is ready. Fix the code and race to submit.' : 'Opponent found. Loading the shared challenge…');
+                byId('cancelButton').hidden = false;
+                pollTimer = setInterval(refreshArena, 1400);
+                await refreshArena();
+            } catch (error) {
+                setStatus(error.message);
+                byId('humanButton').disabled = false;
+                byId('aiButton').disabled = false;
+            }
+        }
+        async function loadChallenge(challengeId) {
+            const data = await arenaApi('/api/debug/challenges/python');
+            const challenge = data.challenges.find(item => item.id === challengeId);
+            if (!challenge) throw new Error('The shared challenge could not be loaded. Leave the duel and try again.');
+            byId('arenaCode').value = challenge.starterCode;
+            byId('arenaCode').dataset.loaded = '1';
+            byId('arenaCode').dataset.id = challenge.id;
+            byId('challengeTitle').textContent = challenge.title;
+            byId('challengeDescription').textContent = challenge.description || 'Fix the starter code so it produces the required result.';
+            setActionAvailability(true);
+        }
+        async function refreshArena() {
+            try {
+                const data = await arenaApi('/api/arena/status');
+                if (data.state === 'searching') { setStatus('Looking for a live player…'); return; }
+                if (!['active','complete','matched'].includes(data.state)) return;
+                matchMode = data.opponent === 'Cipher Bot' ? 'ai' : matchMode || 'human';
+                activeMatch = data.state !== 'complete';
+                if (!byId('arenaCode').dataset.loaded) await loadChallenge(data.challenge_id);
+                byId('opponentName').textContent = data.opponent || 'Opponent';
+                byId('opponentLines').textContent = data.opponent_progress?.lines || 0;
+                byId('opponentTests').textContent = data.opponent_progress?.tests || 0;
+                byId('myLines').textContent = data.own?.lines || 0;
+                byId('myTests').textContent = data.own?.tests || 0;
+                byId('speedBonus').textContent = (1 + Math.max(0, 60 - (Date.now() - startedAt) / 1000) / 100).toFixed(1) + '×';
+                byId('accuracyBonus').textContent = data.own?.tests ? 'Passed' : 'Pending';
+                setActionAvailability(activeMatch);
+                if (data.glitched && !glitchActive) {
+                    glitchActive = true; byId('ghostEditor').classList.add('glitch');
+                    setTimeout(() => { glitchActive = false; byId('ghostEditor').classList.remove('glitch'); }, 4000);
+                }
+                if (data.state === 'complete') {
+                    clearInterval(pollTimer);
+                    showDuelResult(data);
+                    const won = data.own?.submitted;
+                    setStatus(won ? 'Duel complete · You won.' : data.opponent_progress?.submitted ? 'Duel complete · Your opponent won.' : 'Duel complete · draw.');
+                    byId('cancelButton').hidden = true;
+                    byId('humanButton').disabled = false; byId('aiButton').disabled = false;
+                    return;
+                }
+                byId('humanButton').disabled = true; byId('aiButton').disabled = true;
+                byId('cancelButton').hidden = false;
+                if (!pollTimer) pollTimer = setInterval(refreshArena, 1400);
+                setStatus(matchMode === 'ai' ? 'Cipher Bot is racing you. Keep going!' : 'Live duel · first correct submission wins.');
+            } catch (error) {
+                setStatus(error.message);
+                if (!byId('arenaCode').dataset.loaded) byId('challengeDescription').textContent = 'Could not load this task. Leave the round and try again.';
+            }
+        }
+        async function runArenaCode(submit = false) {
+            if (!activeMatch) { setStatus('Start a duel first.'); return; }
+            const code = byId('arenaCode').value;
+            byId('runButton').disabled = true; byId('submitButton').disabled = true;
+            try {
+                const run = await arenaApi('/api/arena/run', 'POST', {code});
+                byId('arenaOutput').textContent = run.success ? (run.stdout || '(Code ran without output.)') : (run.stderr || run.message || 'The code could not run.');
+                const lines = code.split('\n').filter(line => line.trim()).length;
+                await arenaApi('/api/arena/progress', 'POST', {lines, submitted:submit && run.passed});
+                byId('accuracyBonus').textContent = run.passed ? 'Passed' : 'Try again';
+                if (submit && run.passed) await refreshArena();
+                else setStatus(run.passed ? 'All checks passed. Submit your fix to finish.' : 'Not quite yet. Read the output and try again.');
+            } catch (error) { byId('arenaOutput').textContent = error.message; }
+            finally { byId('runButton').disabled = !activeMatch; byId('submitButton').disabled = !activeMatch; }
+        }
+        function submitArena() { runArenaCode(true); }
+        async function distractorHack() {
+            try { const result = await arenaApi('/api/arena/hack','POST'); setStatus(result.message); }
+            catch (error) { setStatus(error.message); }
+        }
+        async function leaveArena() {
+            clearInterval(pollTimer); activeMatch = false; setActionAvailability(false);
+            try { await arenaApi('/api/arena/leave','POST'); } catch (error) { /* The match may already have ended. */ }
+            byId('cancelButton').hidden = true;
+            clearDuelResult();
+            byId('humanButton').disabled = false; byId('aiButton').disabled = false;
+            setStatus('Duel left. Choose a mode to play again.');
+        }
+        document.addEventListener('keydown', event => {
+            if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'm') location.assign('/map');
+            if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'd') location.assign('/dashboard');
+        });
+        // Restore an in-progress duel after a refresh so users can continue it.
+        refreshArena();
+    </script>
+</body>
+</html>

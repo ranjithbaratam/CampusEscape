@@ -26,6 +26,7 @@ async function verifyKey(event) {
         btn.onclick = () => { window.location.href = success ? '/certificate' : '/lock'; };
         modal.style.display = 'flex';
         if (typeof playSfx === 'function') playSfx(success ? 'correct' : 'wrong');
+        if (success && typeof window.celebrateMilestone === 'function') window.celebrateMilestone();
     } catch (error) {
         card.className = 'modal-card err';
         icon.innerText = '⚠️';

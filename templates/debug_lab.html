@@ -6,6 +6,7 @@
     <title>Debug Lab - Campus Escape</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     
     <!-- CodeMirror 5 CDN & Languages -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -47,6 +48,7 @@
         .challenge-nav-label { color: #94a3b8; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
         .support-heading { margin: 1.25rem 0 .55rem; color: #cbd5e1; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
         .support-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1.2rem; }
+        .support-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .support-tool { display: grid; align-content: center; justify-items: start; gap: .25rem; min-height: 72px; padding: .7rem .9rem; border-radius: 12px; text-align: left; }
         .support-tool small { color: #a8b6ca; font-size: .68rem; font-weight: 500; }
         .editor-toolbar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
@@ -54,6 +56,16 @@
         .run-actions button { min-height: 48px; }
         .action-bar { justify-content: initial; }
         .action-bar button:disabled { opacity: .42; cursor: not-allowed; }
+        .debug-stage-tabs { display:flex; gap:.55rem; margin:.8rem 0 .35rem; }
+        .debug-stage-tabs button { min-height:42px; padding:.55rem .8rem; border:1px solid rgba(148,163,184,.2); border-radius:10px; background:rgba(15,23,42,.7); color:#b8c7dc; font:inherit; font-size:.76rem; font-weight:800; cursor:pointer; }
+        .debug-stage-tabs button[aria-selected="true"] { border-color:rgba(56,189,248,.52); background:rgba(14,116,144,.24); color:#bae6fd; }
+        .debug-stage-tabs button:disabled { opacity:.48; cursor:not-allowed; }
+        .debug-stage-note { margin:.25rem 0 .8rem; color:#9fb2c9; font-size:.75rem; }
+        .answer-review { margin:.8rem 0; padding:.9rem 1rem; border:1px solid rgba(52,211,153,.28); border-radius:12px; background:rgba(6,78,59,.15); }
+        .answer-review-heading { display:flex; justify-content:space-between; align-items:center; gap:.75rem; }
+        .answer-review h3 { margin:0 0 .35rem; color:#6ee7b7; font-size:.9rem; }
+        .answer-review p { margin:.3rem 0 .6rem; color:#d4e4ef; font-size:.82rem; line-height:1.55; }
+        .answer-review pre { margin:0; max-height:230px; overflow:auto; padding:.7rem; border-radius:8px; background:#020617; color:#a5f3fc; font:.75rem/1.5 'Fira Code',monospace; white-space:pre-wrap; }
         @media (max-width: 640px) {
             .support-tools { grid-template-columns: 1fr; }
             .support-tool { min-height: 58px; }
@@ -125,12 +137,13 @@
             text-align: center;
         }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="debug-workspace">{% include "_global_nav.html" %}
     <header>
         <a href="/debug" class="btn-back">← CHANGE LANGUAGE</a>
         <div style="font-weight: 800; text-transform: uppercase;">{{ lang }} Debug Lab</div>
-        <div style="display:flex;gap:.8rem;align-items:center;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><span id="progressBadge">Loading progress…</span></div>
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:0.85rem;color:#94a3b8;"><a href="/feedback" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Feedback</a><a href="/arena" style="color:#7dd3fc;text-decoration:none;font-weight:700;">Arena</a><button type="button" class="btn-back" data-audio-toggle onclick="toggleAudio()">Sound on</button><span id="progressBadge">Loading progress…</span></div>
     </header>
 
     <main>
@@ -151,6 +164,11 @@
             <div class="q-tag" id="taskTitle">Loading challenge...</div>
             <div class="q-title" id="taskDesc">Please wait...</div>
             <div class="challenge-progress" role="progressbar" aria-label="Challenges mastered" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><span id="masteryFill"></span></div>
+            <nav class="debug-stage-tabs" aria-label="Debug lab stages">
+                <button id="stageOneButton" type="button" aria-selected="true" onclick="switchDebugStage(1)">Part 1 · Core skills</button>
+                <button id="stageTwoButton" type="button" aria-selected="false" disabled onclick="switchDebugStage(2)">Part 2 · Challenge</button>
+            </nav>
+            <p id="stageNote" class="debug-stage-note">Complete the core skills section to unlock the challenge section.</p>
 
             <div class="challenge-nav" aria-label="Challenge navigation">
                 <button class="btn-back" id="btnPrevious" onclick="goToChallenge(currentIdx - 1)" disabled>← Previous</button>
@@ -158,18 +176,18 @@
                 <button class="btn-back" id="btnNext" onclick="goToChallenge(currentIdx + 1)">Next →</button>
             </div>
 
-            <div class="support-heading">Need help?</div>
+            <div class="support-heading">Guidance</div>
             <div class="support-tools">
                 <button class="hint-btn support-tool" onclick="openHintModal()"><span>💡 Get a hint <span id="hintLevelBadge">1/3</span></span><small>Step-by-step guidance</small></button>
-                <button class="hint-btn support-tool" id="aiCoachBtn" onclick="askAiCoach()"><span>✨ Explain an error</span><small>Explain the latest run output</small></button>
-                <button class="hint-btn support-tool" onclick="showAnswer()"><span>👁 Show answer</span><small>Load the solution into the editor</small></button>
+                <button class="hint-btn support-tool" id="showAnswerButton" onclick="showAnswer()" type="button"><span>👁 Show solution</span><small>View the corrected code and explanation</small></button>
             </div>
+            <section id="answerReview" class="answer-review" hidden aria-live="polite"><div class="answer-review-heading"><h3>Solution walkthrough</h3><button type="button" class="btn-back" onclick="hideAnswer()">Hide solution</button></div><p id="answerExplanation"></p><pre id="answerCode"></pre></section>
 
             <!-- CODE DISPLAY AREA -->
             <div id="editorArea">
                 <div class="editor-toolbar">
                     <label style="font-size:0.75rem; color:#94a3b8; font-weight:700;">EDIT CODE BELOW:</label>
-                    <button class="hint-btn" onclick="resetCode()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">🔄 RESET CODE</button>
+                    <div style="display:flex;gap:.45rem;flex-wrap:wrap"><button class="hint-btn" onclick="shareCurrentChallenge()" type="button">🔗 Challenge a friend</button><button class="hint-btn" onclick="resetCode()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">🔄 RESET CODE</button></div>
                 </div>
                 <p id="editorNotice" class="editor-notice" role="status">Enhanced editor did not load. The basic editor is ready to use.</p>
                 <div class="editor-meta"><span id="draftStatus" aria-live="polite">Draft autosaves on this device</span><span><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Run · <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd> Submit</span></div>
@@ -203,16 +221,18 @@
         </div>
     </div>
 
+
     <!-- COMPLETION SCREEN -->
     <div class="completion-overlay" id="completionOverlay">
         <div class="completion-card">
-            <h2 style="color: #38bdf8; margin-bottom: 0.5rem;">🐞 END OF CHALLENGES</h2>
-            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">You can revisit any challenge. Only submitted fixes count as solved.</p>
+            <h2 id="completionHeading" style="color: #38bdf8; margin-bottom: 0.5rem;">SECTION COMPLETE</h2>
+            <p id="completionMessage" style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Review your solved challenges or continue.</p>
             <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
                 <div style="font-size: 1.1rem; font-weight: 800; color: #4ade80;" id="finalStats">Solved: 5/5 | XP: 700</div>
                 <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem;">DEBUGGING SKILL: EXCELLENT</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button id="continueStageButton" onclick="continueToNextStage()" class="btn-submit-ans" style="display:none;cursor:pointer;">CONTINUE TO PART 2</button>
                 <button onclick="restartChallenges()" class="btn-back" style="text-align:center;border:1px solid rgba(255,255,255,.15);cursor:pointer;">REVIEW CHALLENGES</button>
                 <a href="/debug" class="btn-submit-ans" style="text-decoration: none;">PLAY OTHER LANGUAGE</a>
                 <button onclick="exitToMap()" class="btn-back" style="text-align: center; border: none; cursor: pointer;">BACK TO CAMPUS MAP</button>
@@ -220,16 +240,28 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script src="{{ url_for('static', filename='skins.js') }}"></script>
+    <script src="{{ url_for('static', filename='shortcuts.js') }}"></script>
+    <nav class="mobile-dock" aria-label="Quick navigation"><a href="/map">Map</a><a href="/daily-challenge">Daily</a><a href="/arena">Arena</a><a href="/dashboard">Profile</a></nav>
     <script>
         const LANG = "{{ lang }}";
         const USER_ID = {{ username|tojson }};
         let challenges = [];
+        let allChallenges = [];
+        let stageGroups = {1: [], 2: []};
+        let activeStage = 1;
         let currentIdx = 0;
         let totalXP = 0;
         let hintLevel = 1;
+        let hintCount = 3;
         let solvedChallenges = [];
         let editor;
+        let suppressDraftSave = false;
+        let practiceRestore = null;
+        let practiceResetAfterLoad = false;
+        let practiceResetReason = '';
+        let practiceHiddenAt = null;
+        const PRACTICE_SNAPSHOT_KEY = `campus-escape:${USER_ID}:${LANG}:practice-session`;
 
         function draftStorageKey(challengeId) {
             return `campus-escape:${USER_ID}:${LANG}:${challengeId}`;
@@ -241,11 +273,17 @@
         }
 
         function saveDraft() {
+            if (suppressDraftSave) return;
             const challenge = challenges[currentIdx];
             if (!challenge || !editor) return;
+            if (solvedChallenges.includes(challenge.id)) {
+                clearDraft(challenge);
+                return;
+            }
             try {
                 localStorage.setItem(draftStorageKey(challenge.id), editor.getValue());
                 setDraftStatus(`Draft saved on this device · ${new Date().toLocaleTimeString()}`);
+                savePracticeSnapshot();
             } catch (error) {
                 setDraftStatus('Local draft storage is unavailable in this browser.');
             }
@@ -259,6 +297,31 @@
         function clearDraft(challenge) {
             try { localStorage.removeItem(draftStorageKey(challenge.id)); }
             catch (error) { /* Reset still works for this page session. */ }
+        }
+
+        function savePracticeSnapshot() {
+            try {
+                const hasAnsweredThisLab = allChallenges.some(item => solvedChallenges.includes(item.id));
+                const hasUnfinishedDraft = allChallenges.some(item => !solvedChallenges.includes(item.id) && readDraft(item) !== null);
+                if (!hasAnsweredThisLab && !hasUnfinishedDraft) {
+                    localStorage.removeItem(PRACTICE_SNAPSHOT_KEY);
+                    return;
+                }
+                localStorage.setItem(PRACTICE_SNAPSHOT_KEY, JSON.stringify({
+                    savedAt: Date.now(), solved: solvedChallenges,
+                    stage: activeStage, index: currentIdx
+                }));
+            } catch (error) { /* Practice can continue if local storage is unavailable. */ }
+        }
+
+        function clearPracticeDrafts() {
+            const prefix = `campus-escape:${USER_ID}:${LANG}:`;
+            try {
+                for (let index = localStorage.length - 1; index >= 0; index--) {
+                    const key = localStorage.key(index);
+                    if (key && key.startsWith(prefix)) localStorage.removeItem(key);
+                }
+            } catch (error) { /* Reset the in-memory practice even when storage is unavailable. */ }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -290,8 +353,57 @@
                     else runCode();
                 }
             }, true);
-            loadSavedProgress().then(fetchChallenges);
+            window.addEventListener('pagehide', savePracticeSnapshot);
+            document.addEventListener('visibilitychange', handlePracticeVisibility);
+            loadSavedProgress().then(fetchChallenges).catch(error => {
+                document.getElementById('consoleOut').innerText = error.message || 'Could not restore Debug Lab practice.';
+            });
         });
+
+        async function resetLabPractice(message = 'This lab was reset. Your earned XP was kept.') {
+            const csrf = {{ csrf_token|tojson }};
+            const response = await fetch('/api/debug/reset', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRF-Token':csrf},
+                body: JSON.stringify({language: LANG})
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Could not reset this lab.');
+            const labIds = new Set(allChallenges.map(item => item.id));
+            solvedChallenges = solvedChallenges.filter(id => !labIds.has(id));
+            clearPracticeDrafts();
+            practiceRestore = null;
+            practiceResetAfterLoad = false;
+            totalXP = Number.isFinite(totalXP) ? totalXP : 0;
+            document.getElementById('xpVal').innerText = `${totalXP} XP`;
+            if (allChallenges.length) {
+                activeStage = 1;
+                challenges = stageGroups[1];
+                currentIdx = 0;
+                updateStageControls();
+                loadChallenge();
+                document.getElementById('consoleOut').innerText = message;
+            }
+        }
+
+        async function handlePracticeVisibility() {
+            if (document.hidden) {
+                practiceHiddenAt = Date.now();
+                savePracticeSnapshot();
+                return;
+            }
+            if (practiceHiddenAt === null) return;
+            const awayFor = Date.now() - practiceHiddenAt;
+            practiceHiddenAt = null;
+            if (awayFor > 120000) {
+                try { await resetLabPractice('More than 2 minutes passed, so this lab restarted automatically. Your earned XP was kept.'); }
+                catch (error) { document.getElementById('consoleOut').innerText = error.message; }
+                return;
+            }
+            if (window.confirm('Keep your unfinished draft for this lab? Choose OK to keep it, or Cancel to reset this lab’s answers and code. Your earned XP will stay.')) return;
+            try { await resetLabPractice('Your unfinished code and answered questions for this lab were reset. Your earned XP was kept.'); }
+            catch (error) { document.getElementById('consoleOut').innerText = error.message; }
+        }
 
         async function loadSavedProgress() {
             try {
@@ -300,6 +412,21 @@
                 if (data.success) {
                     totalXP = data.xp;
                     solvedChallenges = data.solved || [];
+                    document.getElementById('xpVal').innerText = `${totalXP} XP`;
+                    let saved = null;
+                    try { saved = JSON.parse(localStorage.getItem(PRACTICE_SNAPSHOT_KEY) || 'null'); } catch (error) { saved = null; }
+                    if (saved && Number.isFinite(saved.savedAt) && Date.now() - saved.savedAt <= 120000) {
+                        const resume = window.confirm('A draft from this lab was saved less than 2 minutes ago. Choose OK to keep it, or Cancel to reset this lab’s answers and code. Your earned XP will stay.');
+                        if (resume) {
+                            practiceRestore = saved;
+                            solvedChallenges = Array.isArray(saved.solved) ? saved.solved : solvedChallenges;
+                        } else {
+                            practiceResetAfterLoad = true;
+                        }
+                    } else if (saved) {
+                        practiceResetAfterLoad = true;
+                        practiceResetReason = 'More than 2 minutes passed, so this lab restarted automatically. Your earned XP was kept.';
+                    }
                     document.getElementById('xpVal').innerText = `${totalXP} XP`;
                 }
             } catch (err) { /* challenge loading reports connection errors */ }
@@ -310,11 +437,60 @@
                 const res = await fetch(`/api/debug/challenges/${LANG}`);
                 const data = await res.json();
                 if (data.success) {
-                    challenges = data.challenges;
+                    allChallenges = data.challenges;
+                    stageGroups = {
+                        1: allChallenges.filter(item => Number(item.difficulty) <= 2),
+                        2: allChallenges.filter(item => Number(item.difficulty) >= 3)
+                    };
+                    challenges = stageGroups[1];
+                    if (practiceResetAfterLoad) {
+                        await resetLabPractice(practiceResetReason || 'Your unfinished code and answered questions for this lab were reset. Your earned XP was kept.');
+                        return;
+                    }
+                    updateStageControls();
+                    if (practiceRestore) {
+                        activeStage = practiceRestore.stage === 2 && stageIsComplete(1) ? 2 : 1;
+                        challenges = stageGroups[activeStage];
+                        currentIdx = Math.max(0, Math.min(Number(practiceRestore.index) || 0, Math.max(0, challenges.length - 1)));
+                        updateStageControls();
+                    }
                     loadChallenge();
                 }
             } catch (err) {
                 document.getElementById("consoleOut").innerText = "Failed to fetch challenge bank.";
+            }
+        }
+
+        function stageIsComplete(stage) {
+            return stageGroups[stage].length > 0 && stageGroups[stage].every(item => solvedChallenges.includes(item.id));
+        }
+
+        function updateStageControls() {
+            const secondUnlocked = stageIsComplete(1);
+            document.getElementById('stageOneButton').setAttribute('aria-selected', String(activeStage === 1));
+            document.getElementById('stageTwoButton').setAttribute('aria-selected', String(activeStage === 2));
+            document.getElementById('stageTwoButton').disabled = !secondUnlocked;
+            document.getElementById('stageTwoButton').textContent = secondUnlocked ? 'Part 2 · Challenge' : 'Part 2 · Locked';
+            document.getElementById('stageNote').textContent = activeStage === 1
+                ? `Core skills · ${stageGroups[1].filter(item => solvedChallenges.includes(item.id)).length}/${stageGroups[1].length} solved. Finish this part to unlock the challenge set.`
+                : `Challenge set · ${stageGroups[2].filter(item => solvedChallenges.includes(item.id)).length}/${stageGroups[2].length} solved.`;
+        }
+
+        function switchDebugStage(stage) {
+            if (stage === 2 && !stageIsComplete(1)) return;
+            saveDraft();
+            activeStage = stage;
+            challenges = stageGroups[stage];
+            currentIdx = 0;
+            updateStageControls();
+            savePracticeSnapshot();
+            loadChallenge();
+        }
+
+        function continueToNextStage() {
+            if (activeStage === 1 && stageIsComplete(1)) {
+                document.getElementById('completionOverlay').style.display = 'none';
+                switchDebugStage(2);
             }
         }
 
@@ -325,28 +501,49 @@
             }
 
             const c = challenges[currentIdx];
+            const challengeCard = document.querySelector('.debug-workspace .game-card');
+            if (challengeCard) {
+                challengeCard.classList.remove('lab-step-enter');
+                void challengeCard.offsetWidth;
+                challengeCard.classList.add('lab-step-enter');
+            }
+            document.getElementById('answerReview').hidden = true;
+            document.getElementById('showAnswerButton').innerHTML = '<span>👁 Show solution</span><small>View the corrected code and explanation</small>';
             document.getElementById("btnPrevious").disabled = currentIdx === 0;
             document.getElementById("btnNext").disabled = currentIdx === challenges.length - 1;
-            document.getElementById("challengeNavLabel").innerText = `Challenge ${currentIdx + 1} of ${challenges.length}`;
+            document.getElementById("challengeNavLabel").innerText = `Part ${activeStage} · ${currentIdx + 1} of ${challenges.length}`;
             document.getElementById("taskTitle").innerText = c.title;
             document.getElementById("taskDesc").innerText = c.description;
             const solvedCount = challenges.filter(item => solvedChallenges.includes(item.id)).length;
-            document.getElementById("progressBadge").innerText = `CHALLENGE ${currentIdx + 1} / ${challenges.length} · ${solvedCount} MASTERED`;
+            document.getElementById("progressBadge").innerText = `PART ${activeStage} · ${currentIdx + 1}/${challenges.length} · ${solvedCount} SOLVED`;
             const progress = document.querySelector('.challenge-progress');
             progress.setAttribute('aria-valuemax', challenges.length);
             progress.setAttribute('aria-valuenow', solvedCount);
             document.getElementById('masteryFill').style.width = `${challenges.length ? solvedCount / challenges.length * 100 : 0}%`;
             
             hintLevel = 1;
-            document.getElementById("hintLevelBadge").innerText = `1/3`;
+            hintCount = Math.max(1, Math.min(3, c.hints?.length || 1));
+            document.getElementById("hintLevelBadge").innerText = `1/${hintCount}`;
 
             const consoleOut = document.getElementById("consoleOut");
             consoleOut.className = "console-output";
 
-            const draft = readDraft(c);
+            const isSolved = solvedChallenges.includes(c.id);
+            if (isSolved) clearDraft(c);
+            const draft = isSolved ? null : readDraft(c);
+            suppressDraftSave = true;
             editor.setValue(draft === null ? c.starterCode : draft);
+            suppressDraftSave = false;
             setDraftStatus(draft === null ? 'Draft autosaves on this device' : 'Restored your saved draft');
             consoleOut.innerText = 'Click "RUN CODE" to test execution...';
+        }
+
+        async function shareCurrentChallenge() {
+            const challenge = challenges[currentIdx];
+            if (!challenge) return;
+            const url = `${location.origin}/challenge/${encodeURIComponent(challenge.id)}`;
+            try { await navigator.clipboard.writeText(url); document.getElementById('consoleOut').innerText = 'Challenge link copied. Send it to a friend!'; }
+            catch (error) { document.getElementById('consoleOut').innerText = `Copy this challenge link: ${url}`; }
         }
 
         function goToChallenge(index) {
@@ -363,6 +560,10 @@
         }
 
         async function showAnswer() {
+            if (!document.getElementById('answerReview').hidden) {
+                hideAnswer();
+                return;
+            }
             const challenge = challenges[currentIdx];
             if (!challenge) return;
             const consoleOut = document.getElementById("consoleOut");
@@ -374,14 +575,21 @@
                 });
                 const data = await response.json();
                 if (!response.ok || !data.success) throw new Error(data.message || 'Answer unavailable.');
-                editor.setValue(data.solution);
-                if (editor.refresh) editor.refresh();
+                document.getElementById('answerExplanation').textContent = challenge.hints?.[challenge.hints.length - 1] || 'Compare this corrected version with the starter code and look at how each line changes the result.';
+                document.getElementById('answerCode').textContent = data.solution;
+                document.getElementById('answerReview').hidden = false;
+                document.getElementById('showAnswerButton').innerHTML = '<span>👁 Hide solution</span><small>Your editor stays unchanged</small>';
                 consoleOut.className = 'console-output';
-                consoleOut.innerText = 'Answer loaded into the editor. Review it, run it, or submit it when ready.';
+                consoleOut.innerText = 'Solution shown below. Your editable code has not been changed.';
             } catch (error) {
                 consoleOut.className = 'console-output err';
                 consoleOut.innerText = error.message || 'Could not load the answer. Check the connection.';
             }
+        }
+
+        function hideAnswer() {
+            document.getElementById('answerReview').hidden = true;
+            document.getElementById('showAnswerButton').innerHTML = '<span>👁 Show solution</span><small>View the corrected code and explanation</small>';
         }
 
         function resetCode() {
@@ -444,8 +652,10 @@
                     consoleOut.innerText = `✓ DEBUG COMPLETE!\nAll test cases passed!\n+${data.xp} XP`;
                     totalXP = data.total_xp;
                     if (!solvedChallenges.includes(c.id)) solvedChallenges.push(c.id);
+                    clearDraft(c);
                     document.getElementById("xpVal").innerText = `${totalXP} XP`;
-                    setTimeout(() => { currentIdx++; loadChallenge(); }, 1400);
+                    savePracticeSnapshot();
+                    setTimeout(() => { currentIdx++; savePracticeSnapshot(); loadChallenge(); }, 1400);
                 } else {
                     if (typeof playSfx === 'function') playSfx('wrong');
                     consoleOut.className = "console-output err";
@@ -454,27 +664,6 @@
             } catch (err) {
                 consoleOut.className = "console-output err";
                 consoleOut.innerText = "Error verifying submission. Check connection.";
-            }
-        }
-
-        async function askAiCoach() {
-            if (typeof playSfx === 'function') playSfx('click');
-            const code = editor.getValue();
-            const terminalText = document.getElementById("consoleOut").innerText;
-
-            try {
-                const res = await fetch("/api/explain-error", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code: code, stderr: terminalText, language: LANG })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    alert("🤖 AI COACH BREAKDOWN:\n\n" + data.explanation);
-                }
-            } catch (err) {
-                alert("AI Coach unavailable right now.");
             }
         }
 
@@ -487,17 +676,17 @@
         function closeHintModal() { document.getElementById("hintModal").style.display = "none"; }
 
         function unlockNextHint() {
-            if (hintLevel < 3) {
+            if (hintLevel < hintCount) {
                 if (typeof playSfx === 'function') playSfx('click');
                 hintLevel++;
-                document.getElementById("hintLevelBadge").innerText = `${hintLevel}/3`;
+                document.getElementById("hintLevelBadge").innerText = `${hintLevel}/${hintCount}`;
                 renderHints();
             }
         }
 
         function renderHints() {
             const container = document.getElementById("hintContainer");
-            const hints = challenges[currentIdx].hints;
+            const hints = (challenges[currentIdx].hints || []).slice(0, hintCount);
             container.innerHTML = "";
 
             for (let i = 0; i < hintLevel; i++) {
@@ -509,12 +698,19 @@
                 div.appendChild(document.createTextNode(hints[i]));
                 container.appendChild(div);
             }
-            document.getElementById("btnNextHint").style.display = hintLevel < 3 ? "inline-block" : "none";
+            document.getElementById("btnNextHint").style.display = hintLevel < hintCount ? "inline-block" : "none";
         }
 
         function showCompletionScreen() {
             const solvedCount = challenges.filter(item => solvedChallenges.includes(item.id)).length;
             document.getElementById("finalStats").innerText = `Solved: ${solvedCount}/${challenges.length} | Total XP: ${totalXP}`;
+            const firstPart = activeStage === 1;
+            document.getElementById('completionHeading').textContent = firstPart ? 'PART 1 COMPLETE' : 'DEBUG LAB COMPLETE';
+            document.getElementById('completionMessage').textContent = firstPart
+                ? 'Core skills complete. The higher-difficulty challenges are now unlocked.'
+                : 'You finished both difficulty sets. Revisit any task or return to the campus map.';
+            document.getElementById('continueStageButton').style.display = firstPart && stageIsComplete(1) ? 'block' : 'none';
+            updateStageControls();
             document.getElementById("completionOverlay").style.display = "flex";
         }
 

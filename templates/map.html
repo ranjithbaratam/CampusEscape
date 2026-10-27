@@ -21,6 +21,8 @@
         .header-actions { display: flex; gap: .65rem; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
         .account-id-chip { display: flex; gap: .55rem; align-items: center; padding: .45rem .7rem .45rem .8rem; border-radius: 11px; border: 1px solid rgba(148,163,184,.18); background: rgba(2,6,23,.45); }
         .account-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cbd5e1; font-size: .72rem; font-weight: 700; }
+        .account-title { color:#5eead4; font-size:.62rem; font-weight:800; white-space:nowrap; }
+        .account-avatar { font-size:1.05rem; }
         .account-id-label { color: #94a3b8; font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .account-id-value { color: #e2e8f0; font: 700 .78rem 'Fira Code', monospace; }
         .copy-id { border: 0; border-radius: 7px; padding: .35rem .5rem; color: #7dd3fc; background: rgba(56,189,248,.12); font-weight: 700; font-size: .7rem; cursor: pointer; }
@@ -100,7 +102,7 @@
         .sector-map-page .brand { color:#7dd3fc; letter-spacing:.015em; }
         .map-container { width:min(1180px,100%); margin:0 auto; padding:clamp(.75rem,3vw,2rem) clamp(1rem,4vw,2.5rem) 4rem; }
         .sector-map-page .welcome-panel { position:relative; overflow:hidden; min-height:0; margin:1rem 0 2.1rem; padding:clamp(1.35rem,4vw,2.5rem); border:1px solid rgba(125,211,252,.2); border-radius:28px; background:linear-gradient(115deg,rgba(11,43,58,.96),rgba(16,31,55,.92) 60%,rgba(39,39,76,.88)); }
-        .sector-map-page .welcome-panel::after { content:""; position:absolute; width:250px; height:250px; right:8%; top:-110px; border:1px solid rgba(125,211,252,.12); border-radius:50%; box-shadow:0 0 0 30px rgba(125,211,252,.025),0 0 0 60px rgba(125,211,252,.02); pointer-events:none; }
+        .sector-map-page .welcome-panel::after { content:""; position:absolute; width:100px; height:100px; right:9%; top:-38px; border:1px solid rgba(125,211,252,.12); border-radius:50%; box-shadow:0 0 0 12px rgba(125,211,252,.025),0 0 0 24px rgba(125,211,252,.02); pointer-events:none; }
         .sector-map-page .welcome-panel > div:first-child { position:relative; z-index:1; }
         .sector-map-page .welcome-panel .eyebrow { color:#79dcde; font-size:.68rem; letter-spacing:.15em; }
         .hero-divider { padding:0 .35rem; color:#52748a; }
@@ -146,7 +148,15 @@
         .sector-map-page .requirement strong { font-size:.73rem; }
         .sector-map-page .header-link { min-height:38px; display:inline-flex; align-items:center; justify-content:center; }
         .sector-map-page a:focus-visible,.sector-map-page button:focus-visible { outline:3px solid #5eead4; outline-offset:3px; }
-        @media(max-width:900px) { .sector-map-page .grid-3-col { grid-template-columns:repeat(2,minmax(0,1fr)); } .sector-map-page .grid-3-col .card:last-child:nth-child(odd) { grid-column:1/-1; } }
+        .sector-map-page .support-grid { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:800px; gap:.85rem; margin:0 0 2rem; }
+        .sector-map-page .support-card { min-height:190px; padding:1.05rem; }
+        .support-icon { display:grid; place-items:center; width:2rem; height:2rem; margin-bottom:.75rem; border:1px solid rgba(56,189,248,.28); border-radius:9px; background:rgba(56,189,248,.1); color:#7dd3fc; font-size:1rem; }
+        .support-practice .support-icon { color:#d7a2ff; border-color:rgba(192,132,252,.38); background:rgba(192,132,252,.12); }
+        .support-certificate .support-icon { color:#6ee7b7; border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.11); }
+        .support-card h2 { margin:.25rem 0!important; font-size:1rem!important; }
+        .support-card p { min-height:3.6em!important; font-size:.72rem!important; }
+        .sector-map-page .support-card .btn-action { min-height:40px; margin-top:.75rem; font-size:.65rem; }
+        @media(max-width:900px) { .sector-map-page .grid-3-col { grid-template-columns:repeat(2,minmax(0,1fr)); } .sector-map-page .grid-3-col .card:last-child:nth-child(odd) { grid-column:1/-1; } .sector-map-page .support-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
         @media(max-width:640px) {
             .sector-map-page header { gap:.65rem; }
             .sector-map-page .brand { font-size:1.05rem; }
@@ -155,7 +165,7 @@
             .sector-map-page .header-link { width:100%; padding:.55rem .45rem; font-size:.67rem; }
             .map-container { padding-inline:1rem; }
             .sector-map-page .welcome-panel { min-height:0; align-items:flex-start; gap:1rem; margin:.5rem 0 1rem; padding:1.35rem 1.15rem; border-radius:21px; }
-            .sector-map-page .welcome-panel::after { width:150px; height:150px; right:-55px; top:-55px; }
+            .sector-map-page .welcome-panel::after { width:82px; height:82px; right:8%; top:-30px; }
             .sector-map-page .welcome-panel h1 { font-size:1.8rem; }
             .sector-map-page .welcome-panel p { font-size:.84rem; }
             .hero-tags { gap:.35rem; margin-top:.9rem; }
@@ -171,6 +181,7 @@
             .section-heading { align-items:flex-start; flex-direction:column; gap:.3rem; }
             .section-heading > p { text-align:left; }
             .sector-map-page .grid-3-col { grid-template-columns:1fr; gap:.75rem; margin-bottom:1.8rem; }
+            .sector-map-page .support-grid { grid-template-columns:1fr; }
             .sector-map-page .grid-3-col .card:last-child:nth-child(odd) { grid-column:auto; }
             .sector-map-page .card { min-height:0; padding:1.1rem; }
             .sector-map-page .card p { min-height:0; }
@@ -181,132 +192,198 @@
             .sector-map-page .requirement strong { font-size:.67rem; }
         }
         @media(max-width:360px) { .sector-map-page .welcome-panel { flex-direction:column; } .sector-map-page .welcome-progress { display:flex; align-items:center; } .sector-map-page .checklist-grid { grid-template-columns:1fr; } }
+        /* Neon mission route: a connected map on desktop, a simple path on mobile. */
+        .sector-map-page .map-intro { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; padding:1.1rem 1.35rem; margin:.75rem 0 1rem; border-radius:17px; background:linear-gradient(110deg,rgba(8,37,54,.88),rgba(22,24,55,.88)); }
+        .sector-map-page .map-intro h1 { margin:.35rem 0; font-size:clamp(1.35rem,2.6vw,2rem); }
+        .sector-map-page .map-intro p { font-size:.78rem; }
+        .map-progress-ring { display:grid; place-items:center; flex:0 0 auto; width:84px; height:84px; padding:6px; border-radius:50%; background:conic-gradient(#25e6ee var(--progress),rgba(148,163,184,.16) 0); filter:drop-shadow(0 0 12px rgba(37,230,238,.22)); }
+        .map-progress-ring>div { display:grid; place-content:center; width:100%; height:100%; border:1px solid rgba(56,189,248,.2); border-radius:50%; background:#0b1c30; text-align:center; }
+        .map-progress-ring strong { color:#d8faff; font:700 1.15rem 'Fira Code',monospace; }
+        .map-progress-ring strong small { font-size:.62rem; }
+        .map-progress-ring span { margin-top:.12rem; color:#98b4c5; font-size:.48rem; }
+        .mission-map-panel { overflow:hidden; padding:1rem 1.2rem 1.3rem; border:1px solid rgba(56,189,248,.18); border-radius:20px; background:radial-gradient(ellipse at 50% 45%,rgba(27,43,101,.23),transparent 58%),linear-gradient(rgba(56,189,248,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.035) 1px,transparent 1px),rgba(4,12,28,.88); background-size:auto,28px 28px,28px 28px,auto; box-shadow:inset 0 0 55px rgba(20,90,140,.08),0 18px 44px rgba(0,0,0,.22); }
+        .route-panel-heading { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+        .route-heading-actions { display:flex; align-items:center; gap:.8rem; }
+        .route-panel-heading>div>span { color:#61e8ed; font-size:.6rem; font-weight:800; letter-spacing:.18em; }
+        .route-panel-heading h2 { margin:.15rem 0 0; font-size:1rem; color:#eaf4ff; }
+        .route-order { display:flex; align-items:center; gap:.45rem; color:#9fb3c7; font:600 .62rem 'Fira Code',monospace; }
+        .route-order i { width:1.5rem; height:1px; background:linear-gradient(90deg,#28dce8,#a778ff); }
+        .mission-map { position:relative; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:1fr; align-items:center; gap:.65rem; max-width:1150px; min-height:300px; margin:.3rem auto 0; }
+        .route-circuit { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+        .route-glow { fill:none; stroke:url(#routeGlow); stroke-width:14; stroke-linecap:round; opacity:.17; filter:blur(7px); }
+        .route-line { fill:none; stroke:url(#routeGlow); stroke-width:2.2; stroke-linecap:round; stroke-dasharray:7 9; opacity:.78; }
+        .mission-node { --node:#27e8f4; --node-rgb:39,232,244; position:relative; z-index:1; width:100%; min-height:235px; justify-self:stretch; align-self:center; padding:.9rem; border:1px solid rgba(var(--node-rgb),.55); border-radius:15px; background:linear-gradient(145deg,rgba(12,28,52,.97),rgba(7,13,31,.97)); box-shadow:0 0 22px rgba(var(--node-rgb),.12),inset 0 0 24px rgba(var(--node-rgb),.045); transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; }
+        .mission-node:hover { transform:translateY(-4px); box-shadow:0 0 30px rgba(var(--node-rgb),.25),inset 0 0 24px rgba(var(--node-rgb),.07); }
+        .mission-node.node-python { grid-column:1; grid-row:1; }
+        .mission-node.node-c { --node:#28b6ff; --node-rgb:40,182,255; grid-column:2; grid-row:1; }
+        .mission-node.node-logic { --node:#ca82ff; --node-rgb:202,130,255; grid-column:3; grid-row:1; }
+        .mission-node.node-vault { --node:#ffbd59; --node-rgb:255,189,89; grid-column:4; grid-row:1; text-align:center; }
+        .mission-node.node-certificate { --node:#a78bfa; --node-rgb:167,139,250; grid-column:5; grid-row:1; }
+        .mission-node.node-vault .node-topline { text-align:left; }
+        .mission-node.node-vault .node-emblem { margin-inline:auto; }
+        .mission-node.node-vault .node-action { justify-content:center; }
+        .mission-node.is-locked { filter:saturate(.58); border-style:dashed; opacity:.76; }
+        .mission-node.is-cleared { --node:#5eeab7; --node-rgb:94,234,183; }
+        .node-topline { display:flex; justify-content:space-between; align-items:center; gap:.4rem; color:#91a8bd; font-size:.56rem; font-weight:800; letter-spacing:.1em; }
+        .node-topline b { color:var(--node); font-size:.53rem; }
+        .node-emblem { display:grid; place-items:center; width:2.25rem; height:2.25rem; margin:.7rem 0 .45rem; border:1px solid rgba(var(--node-rgb),.55); border-radius:10px; background:rgba(var(--node-rgb),.12); color:var(--node); box-shadow:0 0 17px rgba(var(--node-rgb),.15); font:800 1rem 'Fira Code',monospace; }
+        .mission-node h3 { color:#f1f7ff; font-size:1rem; letter-spacing:-.03em; }
+        .mission-node p { min-height:2.2em; margin:.28rem 0 .6rem; color:#95a9bc; font-size:.67rem; line-height:1.5; }
+        .node-score { display:flex; align-items:center; justify-content:space-between; color:#91a5b9; font-size:.54rem; font-weight:800; letter-spacing:.08em; }
+        .node-score strong { color:#e4f3ff; font:700 .72rem 'Fira Code',monospace; letter-spacing:0; }
+        .node-score small { color:#71869c; font-size:.55rem; }
+        .node-progress { height:3px; margin:.42rem 0 .6rem; overflow:hidden; border-radius:99px; background:rgba(148,163,184,.17); }
+        .node-progress span { display:block; height:100%; border-radius:inherit; background:var(--node); box-shadow:0 0 9px var(--node); }
+        .node-action { display:flex; align-items:center; justify-content:space-between; gap:.35rem; min-height:36px; padding:.5rem .6rem; border:1px solid rgba(var(--node-rgb),.4); border-radius:8px; background:rgba(var(--node-rgb),.1); color:var(--node); font-size:.58rem; font-weight:900; letter-spacing:.05em; text-decoration:none; }
+        a.node-action:hover { background:rgba(var(--node-rgb),.18); }
+        .node-action.is-disabled { justify-content:flex-start; border-color:rgba(148,163,184,.18); background:rgba(148,163,184,.06); color:#94a3b8; }
+        .node-vault.is-open { --node:#ffbd59; --node-rgb:255,189,89; text-decoration:none; }
+        .node-vault.is-open .node-action { color:#ffcf81; }
+        .node-vault.is-open:hover { transform:translateY(-4px); }
+        .node-vault.is-cleared { --node:#5eeab7; --node-rgb:94,234,183; }
+        @media(max-width:760px) {
+            .sector-map-page .map-intro { align-items:flex-start; }
+            .mission-map-panel { padding:.9rem; }
+            .mission-map { display:flex; flex-direction:column; align-items:stretch; gap:.8rem; max-width:540px; min-height:0; margin:1rem auto .2rem; padding:0 0 0 1.4rem; }
+            .mission-map::before { position:absolute; top:1.2rem; bottom:3.6rem; left:.48rem; width:2px; content:""; background:linear-gradient(#27e8f4,#28b6ff,#ca82ff,#ffbd59); box-shadow:0 0 10px rgba(39,232,244,.35); }
+            .route-circuit { display:none; }
+            .mission-node,.mission-node.node-python,.mission-node.node-c,.mission-node.node-logic,.mission-node.node-vault,.mission-node.node-certificate { width:100%; min-height:0; align-self:stretch; }
+            .mission-node::before { position:absolute; top:1.2rem; left:-1.4rem; width:.65rem; height:.65rem; content:""; border:2px solid var(--node); border-radius:50%; background:#07101b; box-shadow:0 0 12px var(--node); }
+            .node-emblem { float:right; margin:-.3rem 0 0 .5rem; }
+            .mission-node.node-vault,.mission-node.node-certificate { text-align:left; }
+            .mission-node.node-vault .node-emblem,.mission-node.node-certificate .node-emblem { margin:.7rem 0 .45rem; }
+            .mission-node.node-vault .node-action,.mission-node.node-certificate .node-action { justify-content:flex-start; }
+        }
+        @media(min-width:761px) and (max-width:1000px) { .mission-map { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:auto; min-height:0; max-width:760px; } .route-circuit { display:none; } .mission-node.node-python,.mission-node.node-c,.mission-node.node-logic,.mission-node.node-vault,.mission-node.node-certificate { grid-column:auto; grid-row:auto; align-self:stretch; } }
+        @media(max-width:480px) { .sector-map-page .map-intro { padding:1rem; } .map-progress-ring { width:66px; height:66px; padding:5px; } .map-progress-ring strong { font-size:.9rem; } .map-progress-ring span { font-size:.42rem; } .mission-map-panel { padding:.75rem; border-radius:16px; } .mission-node { padding:.9rem; } .route-order { display:none; } }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='cyber-upgrade.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css', v='20261025-lab-light') }}">
+    <style>
+        .map-head-left { display:flex; align-items:center; gap:.75rem; }
+        .map-menu-toggle { display:grid; place-items:center; width:42px; height:42px; border:1px solid rgba(56,189,248,.25); border-radius:12px; background:rgba(15,23,42,.78); color:#c9f5ff; font-size:1.25rem; cursor:pointer; }
+        .map-menu-toggle:hover { background:rgba(56,189,248,.14); box-shadow:0 0 20px rgba(56,189,248,.14); }
+        .map-menu-overlay { position:fixed; inset:0; z-index:90; width:100%; height:100%; border:0; background:rgba(1,6,16,.68); opacity:0; transition:opacity .22s ease; }
+        .map-menu-overlay[hidden], .map-drawer[hidden] { display:none; }
+        .map-menu-overlay.is-open { opacity:1; }
+        .map-drawer { position:fixed; inset:0 auto 0 0; z-index:91; display:flex; flex-direction:column; width:min(340px,88vw); padding:1.1rem; border-right:1px solid rgba(56,189,248,.22); background:linear-gradient(160deg,#0b1930,#07101d 75%); box-shadow:18px 0 60px rgba(0,0,0,.45); transform:translateX(-103%); transition:transform .25s cubic-bezier(.2,.75,.25,1); overflow-y:auto; }
+        .map-drawer.is-open { transform:translateX(0); }
+        .map-drawer-head { display:flex; justify-content:space-between; align-items:center; gap:.7rem; padding:.2rem 0 .9rem; border-bottom:1px solid rgba(148,163,184,.14); }
+        .map-drawer-head strong { color:#e0f2fe; font-size:1rem; }
+        .map-drawer-head button { display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(148,163,184,.2); border-radius:10px; background:#111d31; color:#dbeafe; font-size:1.2rem; cursor:pointer; }
+        .map-drawer-group { display:grid; gap:.3rem; margin-top:1rem; }
+        .map-drawer-group h2 { margin:0 0 .25rem; color:#71dfe4; font-size:.7rem; letter-spacing:.13em; text-transform:uppercase; }
+        .map-drawer a, .map-drawer-group button { display:flex; align-items:center; gap:.7rem; min-height:44px; padding:.65rem .75rem; border:1px solid transparent; border-radius:10px; background:transparent; color:#d7e3ee; font:600 .9rem 'Plus Jakarta Sans',sans-serif; text-align:left; text-decoration:none; cursor:pointer; }
+        .map-drawer a:hover, .map-drawer-group button:hover { border-color:rgba(56,189,248,.18); background:rgba(56,189,248,.09); color:#fff; }
+        .map-drawer a[aria-current=page] { border-color:rgba(94,234,212,.25); background:rgba(20,184,166,.1); color:#99f6e4; }
+        .map-drawer .drawer-icon { display:grid; place-items:center; width:27px; height:27px; flex:0 0 auto; border-radius:8px; background:rgba(56,189,248,.1); color:#7dd3fc; font-size:.82rem; }
+        .map-drawer .drawer-locked { color:#8292a4; }
+        .map-quick-access { margin:1rem 0 1.5rem; padding:1rem; border:1px solid rgba(56,189,248,.16); border-radius:18px; background:linear-gradient(140deg,rgba(13,31,49,.8),rgba(8,17,31,.82)); }
+        .map-quick-heading { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:.8rem; }
+        .map-quick-heading h2 { margin-top:.2rem; color:#e7f2fb; font-size:1.1rem; }
+        .map-quick-heading p { color:#94aabd; font-size:.82rem; }
+        .map-quick-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; }
+        .map-quick-link { display:flex; align-items:center; gap:.65rem; min-height:58px; padding:.6rem .7rem; border:1px solid rgba(148,163,184,.13); border-radius:12px; background:rgba(2,9,20,.48); color:#dceaf5; text-decoration:none; transition:transform .18s ease,border-color .18s ease,background .18s ease; }
+        .map-quick-link:hover { transform:translateY(-2px); border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.08); }
+        .map-quick-link .quick-icon { display:grid; place-items:center; width:34px; height:34px; flex:0 0 auto; border-radius:10px; background:rgba(56,189,248,.1); color:#83eaff; font-size:.95rem; }
+        .map-quick-link strong { display:block; font-size:.84rem; }
+        .map-quick-link small { display:block; margin-top:.12rem; color:#93a8ba; font-size:.72rem; line-height:1.35; }
+        .map-quick-link.is-locked { cursor:not-allowed; opacity:.68; }
+        .map-quick-link.is-locked:hover { transform:none; border-color:rgba(148,163,184,.13); background:rgba(2,9,20,.48); }
+        .map-quick-link.admin-shortcut .quick-icon { background:rgba(192,132,252,.12); color:#d8b4fe; }
+        body.map-menu-open { overflow:hidden; }
+        .sector-map-page header { flex-direction:row; align-items:center; }
+        @media(max-width:900px) { .map-quick-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media(max-width:640px) { .sector-map-page header { flex-direction:row; align-items:center; } .sector-map-page .header-actions { width:auto; display:flex; } .sector-map-page .account-id-chip { min-width:0; grid-column:auto; gap:.35rem; padding:.4rem .5rem; } .sector-map-page .account-title,.sector-map-page .account-id-label,.sector-map-page .copy-id { display:none; } .sector-map-page .account-name { max-width:92px; } .sector-map-page .account-id-value { font-size:.65rem; } .map-quick-heading { align-items:flex-start; flex-direction:column; gap:.2rem; } .map-quick-grid { gap:.45rem; } .map-quick-link { min-height:58px; padding:.5rem; } .map-quick-link .quick-icon { width:30px;height:30px; } .map-quick-link strong { font-size:.78rem; } .map-quick-link small { font-size:.68rem; } }
+        @media(prefers-reduced-motion:reduce) { .map-menu-overlay,.map-drawer,.map-quick-link { transition:none; } }
     </style>
 </head>
 <body class="sector-map-page">
+    {% include "_global_nav.html" %}
+    <div id="announcementBanner" role="status" hidden style="padding:.65rem 1rem;text-align:center;color:#fef3c7;background:rgba(120,53,15,.45);border-bottom:1px solid rgba(251,191,36,.22);font-size:.78rem"></div>
     <header>
-        <div class="brand">CAMPUS ESCAPE</div>
+        <div class="map-head-left">
+            <button class="map-menu-toggle" id="mapMenuToggle" type="button" aria-label="Open navigation menu" aria-controls="mapDrawer" aria-expanded="false">☰</button>
+            <div class="brand">CAMPUS ESCAPE</div>
+        </div>
         <nav class="header-actions" aria-label="Account navigation">
             <div class="account-id-chip" title="Signed in as {{ username }} · Your unique account ID">
+                <span class="account-avatar" aria-hidden="true">{{ avatar }}</span>
                 <strong class="account-name" title="{{ username }}">{{ username }}</strong>
+                {% if player_title %}<span class="account-title" title="Unlocked title">{{ player_title }}</span>{% endif %}
                 <span class="account-id-label">Your ID</span>
                 <strong class="account-id-value">{{ player_id }}</strong>
                 <button class="copy-id" type="button" onclick="copyAccountId(this)" aria-label="Copy account ID">Copy</button>
             </div>
             <span id="copyStatus" class="copy-status" role="status" aria-live="polite"></span>
-            {% if is_admin %}<a class="header-link dashboard-link" href="/admin">Admin tools</a>{% endif %}
-            <a class="header-link dashboard-link" href="/feedback">Feedback</a>
-            <a class="header-link dashboard-link" href="/dashboard">Dashboard</a>
-            <a class="header-link logout-link" href="/logout">Log out</a>
         </nav>
     </header>
+    <button id="mapMenuOverlay" class="map-menu-overlay" type="button" aria-label="Close navigation menu" hidden></button>
+    <aside class="map-drawer" id="mapDrawer" aria-label="Campus Escape navigation" aria-hidden="true" hidden>
+        <div class="map-drawer-head"><strong>Campus navigation</strong><button type="button" id="mapMenuClose" aria-label="Close navigation menu">×</button></div>
+        <nav class="map-drawer-group" aria-label="Missions">
+            <h2>Missions</h2>
+            <a href="/map" aria-current="page"><span class="drawer-icon">⌖</span>Sector map</a>
+            <a href="/game"><span class="drawer-icon">Py</span>Python Lab</a>
+            <a href="{{ '/c' if unlock_c else '/map' }}" class="{% if not unlock_c %}drawer-locked{% endif %}"><span class="drawer-icon">C</span>C Programming{% if not unlock_c %} · locked{% endif %}</a>
+            <a href="{{ '/logic' if unlock_logic else '/map' }}" class="{% if not unlock_logic %}drawer-locked{% endif %}"><span class="drawer-icon">∑</span>Logic Lab{% if not unlock_logic %} · locked{% endif %}</a>
+            <a href="{{ '/lock' if all_completed else '/map' }}" class="{% if not all_completed %}drawer-locked{% endif %}"><span class="drawer-icon">✦</span>Master Cipher Vault{% if not all_completed %} · locked{% endif %}</a>
+        </nav>
+        <nav class="map-drawer-group" aria-label="More activities">
+            <h2>Activities</h2>
+            <a href="/debug"><span class="drawer-icon">⌘</span>Practice Terminal</a>
+            <a href="/daily-challenge"><span class="drawer-icon">◷</span>Daily Challenge</a>
+            <a href="/arena"><span class="drawer-icon">⚔</span>PvP Arena</a>
+            <a href="/leaderboard"><span class="drawer-icon">▥</span>Leaderboard</a>
+            <a href="/feedback"><span class="drawer-icon">♡</span>Feedback</a>
+        </nav>
+        <nav class="map-drawer-group" aria-label="Account">
+            <h2>Account</h2>
+            <a href="/dashboard"><span class="drawer-icon">◉</span>Dashboard &amp; profile</a>
+            {% if vault_cleared or is_admin %}<a href="/certificate"><span class="drawer-icon">✧</span>Certificate</a>{% endif %}
+            {% if is_admin %}<a href="/admin"><span class="drawer-icon">⚙</span>Admin console</a>{% endif %}
+            <button type="button" data-audio-toggle onclick="toggleAudio()">Sound on</button>
+            <a href="/logout"><span class="drawer-icon">↪</span>Log out</a>
+        </nav>
+    </aside>
 
     <main class="map-container">
-        <section class="welcome-panel">
+        <section class="welcome-panel map-intro">
             <div>
-                <span class="eyebrow">CAMPUS ESCAPE <span class="hero-divider">/</span> MISSION CONTROL</span>
-                <h1>Your campus escape starts here.</h1>
-                <p>Clear three learning sectors, sharpen your debugging skills, then crack the final vault.</p>
-                <div class="hero-tags"><span>3 learning sectors</span><span>Final vault</span></div>
+                <span class="eyebrow">CAMPUS ESCAPE <span class="hero-divider">/</span> SECTOR MAP</span>
+                <h1>Choose your next mission.</h1>
+                <p>Follow the route, clear each lab, and unlock the final vault.</p>
+            </div>
+            <div class="map-progress-ring" role="img" aria-label="{{ progress_percent }} percent of sectors cleared"><div><strong>{{ progress_percent }}<small>%</small></strong><span>sectors cleared</span></div></div>
+        </section>
+
+        <section class="mission-map-panel" aria-labelledby="routeTitle">
+            <div class="route-panel-heading"><div><span>YOUR ROUTE</span><h2 id="routeTitle">Learning sectors and rewards</h2></div><div class="route-heading-actions"><span class="route-order">01 <i></i> 02 <i></i> 03 <i></i> 04 <i></i> 05</span></div></div>
+            <div class="mission-map" aria-label="Ordered path: Python, C Programming, Logic, Master Vault, then Certificate">
+                <svg class="route-circuit" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="routeGlow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#27e8f4"/><stop offset=".34" stop-color="#28b6ff"/><stop offset=".67" stop-color="#ca82ff"/><stop offset="1" stop-color="#ffbd59"/></linearGradient></defs><path class="route-glow" d="M20 150 H980"/><path class="route-line" d="M20 150 H980"/></svg>
+                <article class="mission-node node-python {% if python_completed %}is-cleared{% else %}is-current{% endif %}">
+                    <div class="node-topline"><span>SECTOR 01</span><b>{{ 'CLEARED' if python_completed else 'READY' }}</b></div><div class="node-emblem" aria-hidden="true">Py</div><h3>Python Lab</h3><p>Syntax, variables, and core Python skills.</p><div class="node-score"><span>BEST SCORE</span><strong>{{ py_s }}<small>/1000</small></strong></div><div class="node-progress"><span style="width:{{ [py_s / 10, 100]|min }}%"></span></div><a class="node-action" href="/game">{{ 'REPLAY SECTOR' if python_completed else 'START MISSION' }} <span aria-hidden="true">→</span></a>
+                </article>
+                <article class="mission-node node-c {% if c_completed %}is-cleared{% elif unlock_c %}is-current{% else %}is-locked{% endif %}">
+                    <div class="node-topline"><span>SECTOR 02</span><b>{{ 'CLEARED' if c_completed else 'READY' if unlock_c else 'LOCKED' }}</b></div><div class="node-emblem" aria-hidden="true">C</div><h3>C Programming</h3><p>Types, operators, format strings, and loops.</p><div class="node-score"><span>BEST SCORE</span><strong>{{ c_s }}<small>/1000</small></strong></div><div class="node-progress"><span style="width:{{ [c_s / 10, 100]|min }}%"></span></div>{% if unlock_c %}<a class="node-action" href="/c">{{ 'REPLAY SECTOR' if c_completed else 'START MISSION' }} <span aria-hidden="true">→</span></a>{% else %}<span class="node-action is-disabled"><span aria-hidden="true">🔒</span> CLEAR PYTHON FIRST</span>{% endif %}
+                </article>
+                <article class="mission-node node-logic {% if logic_completed %}is-cleared{% elif unlock_logic %}is-current{% else %}is-locked{% endif %}">
+                    <div class="node-topline"><span>SECTOR 03</span><b>{{ 'CLEARED' if logic_completed else 'READY' if unlock_logic else 'LOCKED' }}</b></div><div class="node-emblem" aria-hidden="true">∑</div><h3>Logic Lab</h3><p>Patterns, reasoning, and analytical puzzles.</p><div class="node-score"><span>BEST SCORE</span><strong>{{ log_s }}<small>/1000</small></strong></div><div class="node-progress"><span style="width:{{ [log_s / 10, 100]|min }}%"></span></div>{% if unlock_logic %}<a class="node-action" href="/logic">{{ 'REPLAY SECTOR' if logic_completed else 'START MISSION' }} <span aria-hidden="true">→</span></a>{% else %}<span class="node-action is-disabled"><span aria-hidden="true">🔒</span> CLEAR C FIRST</span>{% endif %}
+                </article>
+                {% if all_completed %}<article class="mission-node node-vault is-open {% if vault_cleared %}is-cleared{% endif %}"><div class="node-topline"><span>FINAL MISSION</span><b>{{ 'CLEARED' if vault_cleared else 'UNLOCKED' }}</b></div><div class="node-emblem" aria-hidden="true">{% if vault_cleared %}✓{% else %}✦{% endif %}</div><h3>Master Cipher Vault</h3><p>Combine clues from all three sectors and complete your escape.</p><div class="node-score"><span>ROUTE STATUS</span><strong>3 / 3<small> sectors</small></strong></div><div class="node-progress"><span style="width:100%"></span></div><a class="node-action" href="/lock">{{ 'REPLAY VAULT' if vault_cleared else 'OPEN MASTER VAULT' }} <span aria-hidden="true">→</span></a></article>{% else %}<article class="mission-node node-vault is-locked"><div class="node-topline"><span>FINAL MISSION</span><b>LOCKED</b></div><div class="node-emblem" aria-hidden="true">🔒</div><h3>Master Cipher Vault</h3><p>Clear Python, C, and Logic to unlock the final challenge.</p><div class="node-score"><span>REQUIRED</span><strong>{{ (python_completed|int) + (c_completed|int) + (logic_completed|int) }}<small> / 3 sectors</small></strong></div><div class="node-progress"><span style="width:{{ ((python_completed|int) + (c_completed|int) + (logic_completed|int)) * 100 / 3 }}%"></span></div><span class="node-action is-disabled">CLEAR ALL 3 SECTORS</span></article>{% endif %}
+                <article class="mission-node node-certificate {% if vault_cleared %}is-cleared{% else %}is-locked{% endif %}"><div class="node-topline"><span>FINAL REWARD</span><b>{{ 'EARNED' if vault_cleared else 'LOCKED' }}</b></div><div class="node-emblem" aria-hidden="true">▤</div><h3>Certificate</h3><p>Earn your verified Campus Escape certificate.</p><div class="node-score"><span>REQUIREMENT</span><strong>{{ 'COMPLETE' if vault_cleared else 'VAULT' }}</strong></div><div class="node-progress"><span style="width:{{ 100 if vault_cleared else 0 }}%"></span></div>{% if vault_cleared or is_admin %}<a class="node-action" href="/certificate">{{ 'VIEW CERTIFICATE' if vault_cleared else 'PREVIEW CERTIFICATE' }} <span aria-hidden="true">→</span></a>{% else %}<span class="node-action is-disabled">COMPLETE VAULT FIRST</span>{% endif %}</article>
             </div>
         </section>
 
-        <div class="section-heading"><div><span>YOUR ROUTE</span><h2>Core sector missions</h2></div><p>Complete them in order to unlock the final vault.</p></div>
-
-        <!-- SIDE-BY-SIDE 3-COLUMN LAYOUT -->
-        <div class="grid-3-col">
-            <!-- PYTHON LAB -->
-            <div class="card">
-                <div>
-                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 01</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Python Lab</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Syntax, variables, arithmetic, and basic string operations.</p>
-                    <div class="mission-meta"><span>BEST SCORE <b>{{ py_s }}/1000</b></span><strong>{{ 'CLEARED' if python_completed else 'IN PROGRESS' }}</strong></div>
-                    <div class="mission-track"><span style="width: {{ [py_s / 10, 100]|min }}%"></span></div>
-                </div>
-                <a href="/game" class="btn-action btn-active">LAUNCH MISSION →</a>
+        <section class="map-quick-access" aria-labelledby="quickAccessTitle">
+            <div class="map-quick-heading"><div><span class="eyebrow">MORE WAYS TO PLAY</span><h2 id="quickAccessTitle">Choose an activity</h2></div><p>Practice, play a duel, or try today’s puzzle.</p></div>
+            <div class="map-quick-grid">
+                <a class="map-quick-link" href="/debug"><span class="quick-icon">⌘</span><span><strong>Debugging Lab</strong><small>Practice Python and C</small></span></a>
+                <a class="map-quick-link" href="/arena"><span class="quick-icon">⚔</span><span><strong>PvP Arena</strong><small>Race a player or Cipher Bot</small></span></a>
+                <a class="map-quick-link" href="/daily-challenge"><span class="quick-icon">◷</span><span><strong>Daily Challenge</strong><small>Try today’s puzzle</small></span></a>
             </div>
-
-            <!-- C LAB -->
-            <div class="card {% if not unlock_c %}disabled{% endif %}">
-                <div>
-                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 02</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">C Programming</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Data types, format specifiers, operators, and loop controls.</p>
-                    <div class="mission-meta"><span>BEST SCORE <b>{{ c_s }}/1000</b></span><strong>{{ 'CLEARED' if c_completed else 'LOCKED' if not unlock_c else 'IN PROGRESS' }}</strong></div>
-                    <div class="mission-track"><span style="width: {{ [c_s / 10, 100]|min }}%"></span></div>
-                </div>
-                {% if unlock_c %}
-                    <a href="/c" class="btn-action btn-active">LAUNCH MISSION →</a>
-                {% else %}
-                    <span class="btn-action btn-disabled">🔒 REQUIRES PYTHON LAB</span>
-                {% endif %}
-            </div>
-
-            <!-- LOGIC LAB -->
-            <div class="card {% if not unlock_logic %}disabled{% endif %}">
-                <div>
-                    <span style="font-size: 0.75rem; color: #38bdf8; font-weight: 700;">SECTOR 03</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Logic Lab</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Pattern sequences, analytical puzzles, and mathematical reasoning.</p>
-                    <div class="mission-meta"><span>BEST SCORE <b>{{ log_s }}/1000</b></span><strong>{{ 'CLEARED' if logic_completed else 'LOCKED' if not unlock_logic else 'IN PROGRESS' }}</strong></div>
-                    <div class="mission-track"><span style="width: {{ [log_s / 10, 100]|min }}%"></span></div>
-                </div>
-                {% if unlock_logic %}
-                    <a href="/logic" class="btn-action btn-active">LAUNCH MISSION →</a>
-                {% else %}
-                    <span class="btn-action btn-disabled">🔒 REQUIRES C LAB</span>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="section-heading extra-heading"><div><span>EXTRA TOOLS</span><h2>Practice &amp; achievements</h2></div><p>Build confidence, then track your completion.</p></div>
-
-        <!-- PRACTICE, VAULT, AND CERTIFICATE -->
-        <div class="grid-3-col">
-            <!-- DEBUG LAB -->
-            <div class="card">
-                <div>
-                    <span style="font-size: 0.75rem; color: #c084fc; font-weight: 700;">PRACTICE TERMINAL</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Debugging Lab</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Practice Python and C debugging with saved drafts, progressive hints, answer walkthroughs, and a safe runner.</p>
-                </div>
-                <a href="/debug" class="btn-action" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;">ENTER DEBUG LAB →</a>
-            </div>
-
-            <!-- CERTIFICATE CARD -->
-            <div class="card {% if not all_completed %}disabled{% endif %}">
-                <div>
-                    <span style="font-size: 0.75rem; color: #fbbf24; font-weight: 700;">FINAL MISSION</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Master Cipher Vault</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Combine the clues from all three sectors to finish your escape.</p>
-                </div>
-                {% if all_completed %}
-                    {% if vault_cleared %}
-                        <a href="/certificate" class="btn-action btn-cert">✓ VIEW CERTIFICATE →</a>
-                    {% else %}
-                        <a href="/lock" class="btn-action" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;">🔐 ENTER THE VAULT →</a>
-                    {% endif %}
-                {% else %}
-                    <span class="btn-action btn-disabled">🔒 LOCKED (COMPLETE ALL 3 LABS)</span>
-                {% endif %}
-            </div>
-
-            <div class="card {% if not vault_cleared and not is_admin %}disabled{% endif %}">
-                <div>
-                    <span style="font-size: 0.75rem; color: #34d399; font-weight: 700;">FINAL ACHIEVEMENT</span>
-                    <h2 style="font-size: 1.3rem; margin: 0.25rem 0;">Official Certificate</h2>
-                    <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">Your verified record of completing Campus Escape.</p>
-                </div>
-                {% if is_admin %}
-                    <a href="/certificate" class="btn-action btn-cert">👁 PREVIEW CERTIFICATE →</a>
-                {% elif vault_cleared %}
-                    <a href="/certificate" class="btn-action btn-cert">🎓 CLAIM CERTIFICATE →</a>
-                {% else %}
-                    <span class="btn-action btn-disabled">🔒 CLEAR THE VAULT FIRST</span>
-                {% endif %}
-            </div>
-        </div>
+        </section>
     </main>
     <script>
         async function copyAccountId(button) {
@@ -321,6 +398,35 @@
             }
             window.setTimeout(() => { button.textContent = "Copy"; }, 1600);
         }
+        (() => {
+            const toggle = document.getElementById('mapMenuToggle');
+            const close = document.getElementById('mapMenuClose');
+            const drawer = document.getElementById('mapDrawer');
+            const overlay = document.getElementById('mapMenuOverlay');
+            let closeTimer;
+            function openMenu() {
+                window.clearTimeout(closeTimer);
+                drawer.hidden = false; overlay.hidden = false;
+                document.body.classList.add('map-menu-open');
+                requestAnimationFrame(() => { drawer.classList.add('is-open'); overlay.classList.add('is-open'); });
+                drawer.setAttribute('aria-hidden','false'); toggle.setAttribute('aria-expanded','true');
+                drawer.querySelector('a,button')?.focus();
+            }
+            function closeMenu() {
+                drawer.classList.remove('is-open'); overlay.classList.remove('is-open');
+                drawer.setAttribute('aria-hidden','true'); toggle.setAttribute('aria-expanded','false');
+                document.body.classList.remove('map-menu-open'); toggle.focus();
+                closeTimer = window.setTimeout(() => { drawer.hidden = true; overlay.hidden = true; }, 260);
+            }
+            toggle.addEventListener('click', openMenu);
+            close.addEventListener('click', closeMenu);
+            overlay.addEventListener('click', closeMenu);
+            drawer.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+            document.addEventListener('keydown', event => { if (event.key === 'Escape' && !drawer.hidden) closeMenu(); });
+        })();
+        fetch('/api/announcement').then(r=>r.json()).then(d=>{if(d.message){const b=document.getElementById('announcementBanner');b.textContent='📡 '+d.message;b.hidden=false}}).catch(()=>{});
     </script>
+    <script src="{{ url_for('static', filename='skins.js') }}"></script>
+    <script src="{{ url_for('static', filename='shortcuts.js') }}"></script>
 </body>
 </html>

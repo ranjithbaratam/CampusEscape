@@ -14,6 +14,9 @@
         h1 { margin: .35rem 0 0; font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.04em; }
         .subtitle { margin: .5rem 0 0; color: #94a3b8; font-size: .9rem; line-height: 1.6; }
         .back-link { padding: .7rem .9rem; border: 1px solid rgba(148,163,184,.2); border-radius: 10px; color: #cbd5e1; text-decoration: none; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+        .back-link:hover { border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.08); }
+        .admin-inbox-link { display:inline-flex;align-items:center;gap:.45rem; }
+        .admin-inbox-alert { display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 .35rem;border-radius:999px;background:#f43f5e;color:#fff;font-size:.68rem;line-height:1;box-shadow:0 0 12px rgba(244,63,94,.38); }
         .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .85rem; margin: 1.4rem 0; }
         .stat, .panel { border: 1px solid rgba(148,163,184,.15); border-radius: 16px; background: #0b1425; }
         .stat { padding: 1.1rem 1.25rem; }
@@ -38,19 +41,32 @@
         .empty { padding: 1.5rem; color: #94a3b8; }
         #notice { min-height: 1.4rem; margin: .8rem 0 0; color: #7dd3fc; font-size: .8rem; }
         .qa-tools { margin-bottom: 1rem; padding: 1.2rem 1.25rem; }
+        .announcement-current { margin-top:.85rem; padding:.8rem .9rem; border:1px solid rgba(56,189,248,.18); border-radius:10px; background:rgba(2,6,23,.45); }
+        .announcement-current strong { color:#bae6fd; font-size:.82rem; }
+        .announcement-current p { margin:.35rem 0 0; color:#e2e8f0; font-size:.9rem; line-height:1.55; overflow-wrap:anywhere; }
+        .qa-tools .action:disabled { opacity:.45; cursor:not-allowed; }
         .qa-row { display:flex; gap:.7rem; align-items:center; flex-wrap:wrap; margin-top:1rem; }
         .qa-select { min-width: 190px; padding:.7rem .8rem; border:1px solid rgba(148,163,184,.24); border-radius:9px; background:#071020; color:#e2e8f0; font:inherit; font-size:.78rem; }
         .qa-note { margin:.55rem 0 0; color:#94a3b8; font-size:.72rem; line-height:1.5; }
         .action.primary { border-color:rgba(56,189,248,.3); background:rgba(56,189,248,.12); color:#7dd3fc; }
+        .analytics { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:1rem 0 1.3rem }
+        .analytics-card { padding:1rem;border:1px solid rgba(148,163,184,.15);border-radius:14px;background:#0b1425 }
+        .analytics-card strong { display:flex;justify-content:space-between;gap:.5rem;color:#dbeafe;font-size:.8rem }
+        .analytics-card strong span { color:#7dd3fc }
+        .analytics-track { height:7px;margin-top:.7rem;overflow:hidden;border-radius:99px;background:rgba(148,163,184,.16) }
+        .analytics-track span { display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#38bdf8,#5eead4) }
+        .analytics-footer { display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:.7rem;color:#94a3b8;font-size:.76rem }
+        .export-link { padding:.56rem .75rem;border:1px solid rgba(56,189,248,.3);border-radius:8px;color:#7dd3fc;text-decoration:none;font-weight:700 }
         @media(max-width:650px) { body { padding-inline: .75rem; } .topbar { align-items: flex-start; flex-direction: column; } .stats { grid-template-columns: 1fr; } .stat { padding: .9rem 1rem; } }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="admin-page">{% include "_global_nav.html" %}
 <main class="admin-shell">
     <header class="topbar">
         <div><div class="brand">CAMPUS ESCAPE · ADMIN</div><h1>Management</h1><p class="subtitle">Signed in as {{ admin_username }}. Review accounts and manage saved progress.</p></div>
         <div style="display:flex;gap:.55rem;flex-wrap:wrap;">
-            <a class="back-link" href="/admin/feedback">Feedback inbox</a>
+            <a class="back-link admin-inbox-link" href="/admin/feedback" aria-label="Feedback inbox{% if shell_admin_notifications %}, {{ shell_admin_notifications }} new notifications{% endif %}">{% if shell_admin_notifications %}<span class="admin-inbox-alert" aria-hidden="true">🔔 {{ shell_admin_notifications }}{% if shell_admin_notifications == 99 %}+{% endif %}</span>{% else %}<span aria-hidden="true">♢</span>{% endif %}Feedback inbox</a>
             <a class="back-link" href="/feedback">Community feedback</a>
             <a class="back-link" href="/dashboard">← Personal dashboard</a>
         </div>
@@ -61,6 +77,15 @@
         <article class="stat"><span>Quiz attempts</span><strong>{{ stats.attempts }}</strong></article>
         <article class="stat"><span>Combined best scores</span><strong>{{ stats.combined_best }}</strong></article>
         <article class="stat"><span>Open feedback</span><strong>{{ feedback_stats.open }}</strong></article>
+        <article class="stat"><span>Active quiz sessions · 5m</span><strong>{{ active_sessions }}</strong></article>
+        <article class="stat"><span>Database health</span><strong style="color:#34d399">ONLINE</strong></article>
+        <article class="stat"><span>Process memory · RSS</span><strong>{{ memory_usage if memory_usage is not none else 'N/A' }}{% if memory_usage is not none %}<small> MB</small>{% endif %}</strong></article>
+    </section>
+    <div class="analytics-footer"><span>Lab completion among {{ analytics.players }} player accounts · Average XP: {{ "%.0f"|format(analytics.avg_xp) }}</span><a class="export-link" href="/admin/results.csv">Export results CSV</a></div>
+    <section class="analytics" aria-label="Sector completion analytics">
+        {% for key,label in [('python','Python'),('c','C Programming'),('logic','Logic')] %}
+        <article class="analytics-card"><strong>{{ label }} clears <span>{{ completion_rates[key] }}%</span></strong><div class="analytics-track" role="progressbar" aria-label="{{ label }} completion rate" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ completion_rates[key] }}"><span style="width:{{ completion_rates[key] }}%"></span></div><p class="qa-note">{{ analytics[key + '_clears'] }} accounts completed this lab</p></article>
+        {% endfor %}
     </section>
 
     <section class="panel qa-tools" aria-labelledby="qaHeading">
@@ -99,20 +124,21 @@
         </div>
     </section>
 
-    <section class="panel" aria-labelledby="accountsHeading">
-        <div class="panel-heading"><div><h2 id="accountsHeading">Accounts</h2><p>Reset clears quiz, vault, and debugging progress. Delete permanently removes an account and its saved records.</p></div></div>
+        <section class="panel" aria-labelledby="accountsHeading">
+        <div class="panel-heading"><div><h2 id="accountsHeading">Accounts</h2><p>Reset clears quiz, vault, lab, debug, daily challenge, and active duel progress. Delete permanently removes the account and its saved records.</p></div><label for="accountSearch">Filter accounts <input id="accountSearch" type="search" placeholder="Username or player ID" style="display:block;margin-top:.35rem;padding:.55rem;border:1px solid #334155;border-radius:8px;background:#071020;color:#fff"></label></div>
         {% if accounts %}
         <div class="table-wrap"><table>
-            <thead><tr><th>Username</th><th>Player ID</th><th>Role</th><th>Best score</th><th>Attempts</th><th>Sector clears</th><th>Debug XP</th><th>Vault</th><th>Manage</th></tr></thead>
+            <thead><tr><th>Username</th><th>Player ID</th><th>Role</th><th>Status</th><th>Best score</th><th>Attempts</th><th>Sector clears</th><th>Debug XP</th><th>Vault</th><th>Manage</th></tr></thead>
             <tbody>{% for account in accounts %}
-                <tr>
-                    <td>{{ account.username }}</td><td class="id">{{ account.player_id }}</td><td><span class="role">{{ account.role }}</span></td>
+                <tr data-account-search="{{ (account.username ~ ' ' ~ account.player_id ~ ' ' ~ account.role)|lower }}">
+                    <td>{{ account.username }}</td><td class="id">{{ account.player_id }}</td><td><span class="role">{{ account.role }}</span></td><td>{{ 'Suspended' if account.is_banned else 'Active' }}</td>
                     <td>{{ account.best_score or 0 }}</td><td>{{ account.attempts or 0 }}</td><td>{{ account.sectors }}/3</td><td>{{ account.debug_xp }}</td>
                     <td>{{ 'Cleared' if account.vault_cleared else '—' }}</td>
                     <td><div class="actions">
                         {% if account.role != 'admin' %}
-                        <button class="action" type="button" onclick="manageAccount('reset', {{ account.player_id|tojson }})">Reset</button>
-                        <button class="action delete" type="button" onclick="manageAccount('delete', {{ account.player_id|tojson }})">Delete</button>
+                        <button class="action" type="button" onclick="toggleBan({{ account.player_id|tojson }}, {{ 'false' if account.is_banned else 'true' }}, this)">{{ 'Restore' if account.is_banned else 'Ban' }}</button>
+                        <button class="action" type="button" data-account-action="reset" data-player-id="{{ account.player_id }}">Reset</button>
+                        <button class="action delete" type="button" data-account-action="delete" data-player-id="{{ account.player_id }}">Delete</button>
                         {% else %}<span class="role">Protected</span>{% endif %}
                     </div></td>
                 </tr>
@@ -120,12 +146,42 @@
         </table></div>
         {% else %}<p class="empty">No accounts have registered yet.</p>{% endif %}
     </section>
+    <section class="panel qa-tools" aria-labelledby="broadcastHeading">
+        <h2 id="broadcastHeading">Broadcast announcement</h2>
+        <p class="qa-note">Show a short notice at the top of the map. Announcements are displayed as plain text.</p>
+        <div class="announcement-current"><strong>Current notice</strong><p id="broadcastCurrent" aria-live="polite">Loading announcement…</p></div>
+        <label for="broadcastText" class="qa-note">Write or edit a notice <span>(up to 220 characters)</span></label>
+        <textarea id="broadcastText" maxlength="220" rows="3" placeholder="For example: Scheduled maintenance at 18:00 UTC" style="display:block;width:100%;margin:.45rem 0 .7rem;padding:.8rem;border:1px solid #334155;border-radius:9px;background:#071020;color:#fff;font:inherit;line-height:1.5;resize:vertical"></textarea>
+        <div class="qa-row" style="flex-wrap:wrap">
+            <button class="action primary" id="publishAnnouncementButton" type="button" onclick="publishAnnouncement()">Publish announcement</button>
+            <button class="action" id="editAnnouncementButton" type="button" onclick="editAnnouncement()" disabled>Edit current</button>
+            <button class="action delete" id="deleteAnnouncementButton" type="button" onclick="deleteAnnouncement()" disabled>Delete announcement</button>
+        </div>
+        <p id="broadcastPreview" class="qa-note" aria-live="polite">Draft preview appears here.</p>
+    </section>
+    <section class="panel qa-tools" aria-labelledby="puzzleReviewHeading"><h2 id="puzzleReviewHeading">Community puzzle review · {{ pending_puzzles|length }} pending</h2><p class="qa-note">Approve clean, solvable challenges to publish them in the player feed.</p>{% for puzzle in pending_puzzles %}<div class="qa-row" id="puzzle-{{ puzzle.id }}"><span>{{ puzzle.title }} · {{ puzzle.language }} · by {{ puzzle.username }}</span><button class="action primary" onclick="moderatePuzzle({{ puzzle.id }},'approve')">Approve</button><button class="action delete" onclick="moderatePuzzle({{ puzzle.id }},'reject')">Reject</button></div>{% else %}<p class="qa-note">No submissions waiting for review.</p>{% endfor %}</section>
     <p id="notice" role="status" aria-live="polite"></p>
 </main>
 <script>
     const csrfToken = {{ csrf_token|tojson }};
     const labLinks = { python: '/game', c: '/c', logic: '/logic' };
     const debugLinks = { python: '/debug/python', c: '/debug/c' };
+    document.getElementById('accountSearch')?.addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase();document.querySelectorAll('[data-account-search]').forEach(row=>row.hidden=!row.dataset.accountSearch.includes(q))});
+    let currentAnnouncement = '';
+    let editingAnnouncement = false;
+    document.getElementById('broadcastText')?.addEventListener('input',e=>document.getElementById('broadcastPreview').textContent=e.target.value.trim()||'Draft preview appears here.');
+    function showAdminNotice(message, refresh = false) {
+        const notice = document.getElementById('notice');
+        notice.textContent = message;
+        if (refresh) window.setTimeout(() => window.location.reload(), 900);
+    }
+    async function loadAnnouncement(){const current=document.getElementById('broadcastCurrent');try{const r=await fetch('/api/announcement');const d=await r.json();if(!r.ok||!d.success)throw Error(d.message||'Could not load announcement.');currentAnnouncement=d.message||'';current.textContent=currentAnnouncement||'No announcement is currently published.';document.getElementById('editAnnouncementButton').disabled=!currentAnnouncement;document.getElementById('deleteAnnouncementButton').disabled=!currentAnnouncement}catch(e){current.textContent=e.message||'Could not load announcement.'}}
+    function editAnnouncement(){if(!currentAnnouncement)return;editingAnnouncement=true;document.getElementById('broadcastText').value=currentAnnouncement;document.getElementById('broadcastPreview').textContent=currentAnnouncement;document.getElementById('publishAnnouncementButton').textContent='Save changes';document.getElementById('broadcastText').focus()}
+    async function publishAnnouncement(){const preview=document.getElementById('broadcastPreview'),message=document.getElementById('broadcastText').value.trim(),wasEditing=editingAnnouncement;if(!message){preview.textContent='Write a notice before publishing.';document.getElementById('broadcastText').focus();return}try{const r=await fetch('/api/announcement',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({message})});const d=await r.json();if(!r.ok||!d.success)throw Error(d.message||'Could not publish.');currentAnnouncement=message;editingAnnouncement=false;document.getElementById('broadcastCurrent').textContent=currentAnnouncement;document.getElementById('broadcastText').value='';document.getElementById('publishAnnouncementButton').textContent='Publish announcement';document.getElementById('editAnnouncementButton').disabled=false;document.getElementById('deleteAnnouncementButton').disabled=false;preview.textContent=wasEditing?'Announcement updated.':'Announcement published.'}catch(e){preview.textContent=e.message||'Could not publish announcement.'}}
+    async function deleteAnnouncement(){if(!currentAnnouncement)return;if(!window.confirm('Delete the current announcement from the map?'))return;const preview=document.getElementById('broadcastPreview');try{const r=await fetch('/api/announcement',{method:'DELETE',headers:{'X-CSRF-Token':csrfToken}});const d=await r.json();if(!r.ok||!d.success)throw Error(d.message||'Could not delete announcement.');currentAnnouncement='';editingAnnouncement=false;document.getElementById('broadcastCurrent').textContent='No announcement is currently published.';document.getElementById('broadcastText').value='';document.getElementById('publishAnnouncementButton').textContent='Publish announcement';document.getElementById('editAnnouncementButton').disabled=true;document.getElementById('deleteAnnouncementButton').disabled=true;preview.textContent=d.message}catch(e){preview.textContent=e.message||'Could not delete announcement.'}}
+    loadAnnouncement();
+    async function toggleBan(id,banned,button){try{const r=await fetch('/api/admin/ban/'+encodeURIComponent(id),{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({banned})});const d=await r.json();if(!r.ok)throw Error(d.message);button.textContent=banned?'Restore':'Ban';button.setAttribute('onclick',`toggleBan(${JSON.stringify(id)},${banned?'false':'true'},this)`);const cell=button.closest('tr').children[3];cell.textContent=banned?'Suspended':'Active';document.getElementById('notice').textContent=d.message}catch(e){document.getElementById('notice').textContent=e.message}}
+    async function moderatePuzzle(id,action){try{const r=await fetch(`/api/admin/community/${id}/${action}`,{method:'POST',headers:{'X-CSRF-Token':csrfToken}});const d=await r.json();if(!r.ok)throw Error(d.message);document.getElementById(`puzzle-${id}`)?.remove()}catch(e){document.getElementById('notice').textContent=e.message}}
     async function qaRequest(path, body = {}) {
         const response = await fetch(path, {
             method: 'POST',
@@ -140,7 +196,7 @@
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/complete', { sector: document.getElementById('qaLab').value });
-            notice.textContent = data.message;
+            showAdminNotice(data.message, true);
         } catch (error) { notice.textContent = error.message; }
     }
     async function completeAll() {
@@ -148,7 +204,7 @@
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/complete', { sector: 'all' });
-            notice.textContent = data.message;
+            showAdminNotice(data.message, true);
         } catch (error) { notice.textContent = error.message; }
     }
     async function openLabPreview() {
@@ -157,7 +213,7 @@
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/complete', { sector });
-            notice.textContent = data.message;
+            showAdminNotice(data.message, true);
             if (previewTab) previewTab.location.href = labLinks[sector];
             else notice.textContent += ' Allow pop-ups to open the lab in a new tab.';
         } catch (error) {
@@ -166,12 +222,11 @@
         }
     }
     async function resetQa() {
-        if (!window.confirm('Reset all quiz, vault, and debugging progress on your admin account?')) return;
+        if (!window.confirm('Reset all quiz, vault, lab, debugging, daily challenge, and active duel progress on your admin account?')) return;
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/reset');
-            notice.textContent = data.message;
-            window.setTimeout(() => window.location.reload(), 650);
+            showAdminNotice(data.message, true);
         } catch (error) { notice.textContent = error.message; }
     }
     async function openDebugPreview() {
@@ -184,7 +239,7 @@
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/debug-complete', { language });
-            notice.textContent = data.message;
+            showAdminNotice(data.message, true);
         } catch (error) { notice.textContent = error.message; }
     }
     async function completeDebugAll() {
@@ -192,26 +247,39 @@
         const notice = document.getElementById('notice');
         try {
             const data = await qaRequest('/api/admin/qa/debug-complete', { language: 'all' });
-            notice.textContent = data.message;
+            showAdminNotice(data.message, true);
         } catch (error) { notice.textContent = error.message; }
     }
-    async function manageAccount(action, playerId) {
+    async function manageAccount(action, playerId, button) {
+        if (!['reset', 'delete'].includes(action) || !playerId) return;
         const wording = action === 'delete'
             ? `Permanently delete ${playerId} and all its saved data? This cannot be undone.`
             : `Reset all saved progress for ${playerId}? This cannot be undone.`;
         if (!window.confirm(wording)) return;
         const notice = document.getElementById('notice');
+        const row = button?.closest('tr');
+        const rowButtons = row ? [...row.querySelectorAll('button')] : [];
+        rowButtons.forEach(control => { control.disabled = true; });
+        row?.setAttribute('aria-busy', 'true');
         notice.textContent = 'Saving change…';
         try {
             const response = await fetch(`/api/admin/accounts/${encodeURIComponent(playerId)}/${action}`, {
-                method: 'POST', headers: { 'X-CSRF-Token': csrfToken }
+                method: 'POST', headers: { 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' }
             });
-            const data = await response.json();
-            if (!response.ok || !data.success) throw new Error(data.message || 'The change could not be saved.');
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.message || 'The change could not be saved. Reload the page and try again.');
             notice.textContent = data.message;
+            if (action === 'delete') row?.remove();
             window.setTimeout(() => window.location.reload(), 650);
-        } catch (error) { notice.textContent = error.message || 'The request failed. Please try again.'; }
+        } catch (error) {
+            notice.textContent = error.message || 'The request failed. Please try again.';
+            row?.removeAttribute('aria-busy');
+            rowButtons.forEach(control => { control.disabled = false; });
+        }
     }
+    document.querySelectorAll('[data-account-action]').forEach(button => {
+        button.addEventListener('click', () => manageAccount(button.dataset.accountAction, button.dataset.playerId, button));
+    });
 </script>
 </body>
 </html>

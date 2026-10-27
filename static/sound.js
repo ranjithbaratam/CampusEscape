@@ -1,6 +1,25 @@
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx = null;
+let soundMuted = false;
+try { soundMuted = localStorage.getItem('campusEscapeMuted') === 'true'; } catch (error) { /* Storage can be disabled by browser privacy settings. */ }
+
+function syncAudioToggle() {
+    document.querySelectorAll('[data-audio-toggle]').forEach(button => {
+        button.textContent = soundMuted ? '🔇 Sound off' : '🔊 Sound on';
+        button.setAttribute('aria-pressed', String(!soundMuted));
+    });
+}
+
+function toggleAudio() {
+    soundMuted = !soundMuted;
+    try { localStorage.setItem('campusEscapeMuted', String(soundMuted)); } catch (error) { /* The toggle still works for this page. */ }
+    syncAudioToggle();
+}
 
 function playSfx(type) {
+    if (soundMuted) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
@@ -28,3 +47,5 @@ function playSfx(type) {
         osc.stop(audioCtx.currentTime + 0.2);
     }
 }
+
+document.addEventListener('DOMContentLoaded', syncAudioToggle);

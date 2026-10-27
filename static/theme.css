@@ -1,0 +1,24 @@
+html[data-theme="light"] body { background:#edf4f8!important; color:#182b3e!important; }
+html[data-theme="light"] .game-card,
+html[data-theme="light"] .hud-card,
+html[data-theme="light"] .mission-brief,
+html[data-theme="light"] .stat-card,
+html[data-theme="light"] .dash-panel,
+html[data-theme="light"] .sector-card,
+html[data-theme="light"] .achievement-badge,
+html[data-theme="light"] .account-panel { background:#fff!important; color:#182b3e!important; border-color:#cbd9e4!important; }
+html[data-theme="light"] .game-card h1, html[data-theme="light"] .game-card h2,
+html[data-theme="light"] .dash-header h1, html[data-theme="light"] .panel-heading h2,
+html[data-theme="light"] .sector-top, html[data-theme="light"] .achievement-badge h3 { color:#17334b!important; }
+html[data-theme="light"] .q-title, html[data-theme="light"] .mission-brief p,
+html[data-theme="light"] .panel-note, html[data-theme="light"] .dash-header p,
+html[data-theme="light"] .account-help, html[data-theme="light"] .achievement-badge p { color:#526579!important; }
+html[data-theme="light"] .code-box, html[data-theme="light"] #qCode { background:#f1f6fa!important;color:#14314a!important;border-color:#cbd9e4!important; }
+html[data-theme="light"] .opt-btn { background:#f4f8fb!important;color:#17334b!important;border-color:#cbd9e4!important; }
+html[data-theme="light"] .sector-map-page { background-color:#edf4f8!important;background-image:radial-gradient(ellipse at 12% 8%,rgba(14,165,233,.1),transparent 35%),radial-gradient(ellipse at 92% 42%,rgba(99,102,241,.08),transparent 38%)!important;color:#182b3e!important; }
+html[data-theme="light"] .sector-map-page header { background:rgba(255,255,255,.94)!important;border-color:#d5e1e9!important; }
+html[data-theme="light"] .sector-map-page .card { background:linear-gradient(150deg,#fff,#f3f8fb)!important;border-color:#d2dee7!important; }
+html[data-theme="light"] .sector-map-page .card h2, html[data-theme="light"] .section-heading h2 { color:#17334b!important; }
+html[data-theme="light"] .sector-map-page .welcome-panel { background:linear-gradient(115deg,#dff5f7,#e9ebfa)!important; }
+html[data-theme="light"] .sector-map-page .welcome-panel h1 { color:#122b40!important; }
+html[data-theme="light"] .sector-map-page .welcome-panel p, html[data-theme="light"] .sector-map-page .section-heading > p { color:#526579!important; }

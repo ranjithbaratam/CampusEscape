@@ -51,8 +51,9 @@
         .lang-title { font-size: 1.1rem; font-weight: 800; }
         .lang-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 0.4rem; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body>{% include "_global_nav.html" %}
     <div class="select-card">
         <h1>DEBUG LAB</h1>
         <p>CHOOSE YOUR PRACTICE LANGUAGE</p>

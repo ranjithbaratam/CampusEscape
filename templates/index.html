@@ -19,6 +19,7 @@
             overflow-y: auto;
             position: relative;
         }
+        body::before { content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.16; background-image:linear-gradient(rgba(56,189,248,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.07) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 85%); }
 
         /* Cyber Background Glows */
         .bg-glow-1 {
@@ -38,12 +39,12 @@
             z-index: 10;
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.2);
             border-radius: 28px;
             padding: 3rem 2.5rem;
             width: 100%;
             max-width: 480px;
-            box-shadow: 0 25px 60px -24px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.08);
+            box-shadow: 0 25px 60px -24px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.1), inset 0 1px rgba(255,255,255,.04);
             animation: fadeIn 0.6s ease-out;
         }
 
@@ -129,7 +130,8 @@
         }
         .btn-submit:active { transform: translateY(0); }
         .btn-submit:disabled { opacity: .7; cursor: wait; transform: none; }
-        @media (max-width: 520px) { body { padding: 1rem; } .login-card { padding: 2.2rem 1.35rem; border-radius: 22px; } .brand-logo { font-size: 1.9rem; } }
+        @media (max-width: 900px) { body { flex-direction:column; justify-content:center; gap:1rem; padding:1.2rem 1rem; } .login-card { width:min(100%,520px); margin:0 auto; } .login-card { padding:2.2rem clamp(1.25rem,5vw,2.5rem); } }
+        @media (max-width: 520px) { body { padding:.75rem; } .login-card { padding:1.8rem 1.1rem; border-radius:20px; } .brand-header { margin-bottom:1.4rem; } .brand-logo { font-size:1.8rem; } }
 
         /* Feedback Message Box */
         .msg-box {
@@ -149,8 +151,9 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="auth-page">{% include "_global_nav.html" %}
     <div class="bg-glow-1"></div>
     <div class="bg-glow-2"></div>
 

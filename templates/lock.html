@@ -134,8 +134,9 @@
         .btn-modal.success { background: #10b981; color: white; }
         .btn-modal.err { background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='visual-refresh.css') }}">
 </head>
-<body>
+<body class="vault-workspace">{% include "_global_nav.html" %}
     <div class="vault-card">
         <span class="badge-vault">FINAL ESCAPE VAULT</span>
         <h2>Master Terminal</h2>
@@ -172,7 +173,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='sound.js') }}"></script>
+    <script src="{{ url_for('static', filename='celebrate.js') }}"></script>
     <script src="{{ url_for('static', filename='lock.js') }}"></script>
 </body>
 </html>
